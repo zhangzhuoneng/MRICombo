@@ -856,86 +856,7 @@ def main():
 
             
             
-            
-            
-            
-            
-    
-            # val_cls_loss = []
-            # all_labels = {}
-            # all_preds = {}
-            # all_probs = {}
-            # cls_accuracy =[]
-            # # 用于存储每个数据集的分类准确率
-            # dataset_names = ["AMB", "BCa", "NPC", "LLD","Bra"]  
-            # # 初始化字典，存储每个数据集的标签和预测
-            # for dataset_name in dataset_names:
-            #     all_labels[dataset_name] = []
-            #     all_preds[dataset_name] = []
-            #     all_probs[dataset_name] = []
-            # with torch.no_grad():
-            #     for index, batch in enumerate(val_cls_loader):
-            #         images = torch.from_numpy(batch['image']).cuda()
-            #         labels = torch.from_numpy(batch['label']).cuda()
-            #         labels = labels.long()
-            #         volumeName = batch['name']
-                    
-            #         _,cls_preds = model(images,"cls")  # BP 1 D W H
 
-            #         # ce_loss = loss_cls(cls_preds, labels)
-            #         # val_cls_loss.append(float(ce_loss))
-
-            #         # 将预测的类别标签和概率保存下来
-            #         preds = torch.argmax(cls_preds, dim=1)
-            #         probs = torch.softmax(cls_preds, dim=1)
-
-            #         dataset_prefix = volumeName[0][:3]  
-            #         # 如果dataset_prefix是numpy.ndarray，转换为字符串
-            #         if isinstance(dataset_prefix, np.ndarray):
-            #             dataset_prefix = dataset_prefix.item()  # 如果是numpy数组，转成字符串
-                    
-            #         if dataset_prefix in all_labels:
-            #             all_labels[dataset_prefix].extend(labels.cpu().numpy())
-            #             all_preds[dataset_prefix].extend(preds.cpu().numpy())
-            #             all_probs[dataset_prefix].extend(probs.cpu().numpy())
-            #         else:
-            #             print("warning: no dataset_prefix")
-
-
-            #     cls_loss = np.mean(val_cls_loss)
-            #     # 计算每个数据集的准确率
-            #     for dataset_name in dataset_names:
-            #         accuracy = accuracy_score(all_labels[dataset_name], all_preds[dataset_name])
-            #         cls_accuracy.append(accuracy)
-            #         logging.info(f'{dataset_name} cls_acc: {accuracy:.4f}')
-            #         # print(f'{dataset_name} cls_acc: {accuracy:.4f}')
-
-            #     cls_accuracy=np.mean(cls_accuracy)
-            
-
-            #     # writer.add_scalar('val_cls_loss', cls_loss, epoch)
-            #     writer.add_scalar('val_cls_acc', cls_accuracy, epoch)
-            #     end_epoch_time = timeit.default_timer()   
-            #     epoch_time = end_epoch_time-start_epoch_time
-
-            #     logging.info('val-- cls acc = {:.4f}, time = {:.3f} seconds'.format(cls_accuracy,epoch_time))
-
-            # # if (epoch+1) % 50 == 0 and args.local_rank==0:
-            # #         checkpoint = {
-            # #                 'model': model.state_dict(),
-            # #                 'optimizer': optimizer.state_dict(),
-            # #                 "epoch": epoch
-            # #             }
-            # #         torch.save(checkpoint, osp.join(args.snapshot_dir, 'checkpoint_omni' + '_e'+ str(epoch) + '.pth'))
-
-                        
-            # if (epoch+1) % 10== 0 and args.local_rank==0:
-            #     # best_loss =  pred_epoch_loss 
-            #     torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'omni_seg_cls_no_pcg' + '_e' + str(epoch) + '.pth'))
-
-
-    
-    
     end = timeit.default_timer()
     print(end - start)
    
@@ -943,5 +864,4 @@ if __name__ == '__main__':
     main()
 # multi-gpu
 # NCCL_P2P_DISABLE=1 CUDA_VISIBLE_DEVICES=4,5,6 python -m torch.distributed.launch --nproc_per_node=3 --master_port 6535 train.py --dist True
-# single gpu
-# CUDA_VISIBLE_DEVICES=7 python train.py  
+
