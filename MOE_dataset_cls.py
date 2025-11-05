@@ -32,7 +32,6 @@ from dataset.aug_cls import *
 
 
 position_cls_dict= {
-    # "10AMBL":0,
     "11FedBca":0,
     "12NPC":1,
     "13LLD":2,
@@ -43,8 +42,8 @@ position_cls_dict= {
 
 def list_add_prefix(txt_path, prefix_1):
     '''
-    prefix_1: 用于训练的数据集的路径前缀
-    prefix_2: imgs, masks等
+    prefix_1: 
+    prefix_2: 
     '''
     with open(txt_path, 'r') as f:
         lines = f.readlines()
@@ -52,18 +51,18 @@ def list_add_prefix(txt_path, prefix_1):
     if prefix_1 is not None:
         filtered_lines = [line for line in lines if line.split('/')[1].startswith(prefix_1)]
         # print(filtered_lines)
-        # 提取唯一名称（假设名称位于文件路径的某部分，例如 "ProstateX_0110"）
+        
         unique_names = set()
         for line in filtered_lines:
 
-            # 获取文件名部分，并通过规则提取唯一名称
-            filename = line.split('/')[-1]  # 获取文件名
+           
+            filename = line.split('/')[-1]  
             unique_names.add(filename)
         
         return list(unique_names)
     
     else:
-        return print('数据集错误')
+        return print('dataset error')
 def get_subset_len(seg_dataset, text_path, split):
     subset_len = []
     for dataset_name in seg_dataset:
@@ -90,7 +89,6 @@ class UniclsDataset(data.Dataset):
         self.files = []
         print("Start preprocessing....")
         self.cls_use_dataset = [
-        # "10AMBL",
         "11FedBca",
         "12NPC",
         "13LLD",
@@ -143,39 +141,7 @@ class UniclsDataset(data.Dataset):
         self.subset_len = get_subset_len(self.cls_use_dataset,self.text_path, split)
         print('{} cls {} images are loaded!'.format(len(self.files),self.split))
 
-        # for item in self.img_ids:
-           
-        #     image_path, cls_label = item
-        #     sequence = image_path.split('.nii.gz')[0][-3:]
-        #     sequence_id=None
-        #     # print( image_path)
-        #     part_id = int(image_path[11])
-        #     if  sequence=="t1n":
-        #         sequence_id= 0
-        #     elif sequence=="t1c":
-        #         sequence_id= 1
-        #     elif sequence=="t2w" or sequence=="T2w":
-        #         sequence_id= 2
-        #     elif sequence=="t2f":
-        #         sequence_id= 3
-        #     elif sequence=="adc":
-        #         sequence_id= 4
-        #     elif sequence=="dce" or sequence=="DCE":
-        #         sequence_id= 5
-        #     name = osp.splitext(osp.basename(image_path))[0]
-        #     img_file = osp.join(self.root, image_path)
-        #     cls_label = float(cls_label)  # 先转换为浮点数
-        #     label = int(cls_label)  # 再转换为整数并减去1       
-        #     # print(img_file,label)
-        #     self.files.append({
-        #         "image": img_file,
-        #         "label": label,
-        #         "name": name,
-        #         "part_id": part_id,
-        #         "sequence_id":sequence_id
-        #     })
-        # print('{} cls_{} images are loaded!'.format(len(self.img_ids),self.split))
-        # self.subset_len = get_subset_len(self.cls_use_dataset,self.text_path,split)
+       
        
     def __len__(self):
         return len(self.files)
@@ -207,17 +173,7 @@ class UniclsDataset(data.Dataset):
         patient_id = patient["id"]
         part_id = int(patient_id[11:13])  # 获取部位ID
         name =  patient_id.split('/')[-1]
-        # print(patient_id)
-        images = {key:torch.tensor(load_nii(f"{self.root}/{patient_id}/{patient[key]}")) for key in patient if key not in ["id", "label"]}
-        # print(images[0].shape)
-        # images = torch.stack([images[key].to(torch.float32) for key in images])
         
-        # external test lld
-        # images = {key: torch.tensor(
-        #     resize(load_nii(f"{self.root}/{patient_id}/{patient[key]}"), (128, 128, 128),
-        #            order=1, mode='constant', cval=0, clip=True, preserve_range=True)
-        # ) for key in patient if key not in ["id", "label"]}
-        #
         images = torch.stack([images[key].to(torch.float32) for key in images])
         label = patient["label"]
         
@@ -245,22 +201,22 @@ class UniclsDataset(data.Dataset):
                   
             images = images.squeeze(0)
             if np.random.rand(1) <= 0.5:
-                #  1. 生成统一的旋转参数
+               
                 images = rotate_3d_image_and_label(images, angle_spectrum=90)
            
             if np.random.rand(1) <= 0.5:  # mirror_flip W
                 images = np.array(images)
-                images = images[:, :, :, ::-1]  # 水平翻转
-                images = torch.from_numpy(images.copy())  # 添加 .copy()
+                images = images[:, :, :, ::-1]  # h flip
+                images = torch.from_numpy(images.copy())  
             if np.random.rand(1) <= 0.5:
                 images = np.array(images)
-                images = images[:, :, ::-1, :]  # 垂直翻转
-                images = torch.from_numpy(images.copy())  # 添加 .copy()
+                images = images[:, :, ::-1, :]  # v flip
+                images = torch.from_numpy(images.copy())  
             if np.random.rand(1) <= 0.5:
                 images = np.array(images)
-                images = images[:, ::-1, :, :]  # 深度翻转
-                images = torch.from_numpy(images.copy())  # 添加 .copy()
-            # 如果是需要采样到非96 96 96， 需要修改这里
+                images = images[:, ::-1, :, :]  
+                images = torch.from_numpy(images.copy())  
+           
             images = np.array(images)
             images = resize(images, (images.shape[0], self.crop_h, self.crop_w, self.crop_d), order=1, mode='constant', cval=0,
                         clip=True, preserve_range=True)
@@ -270,7 +226,7 @@ class UniclsDataset(data.Dataset):
 
         elif self.split == 'val' or self.split == 'test':
             images = np.array(images)
-            # 如果是需要采样到非96 96 96， 需要修改这里
+          
             images = resize(images, (images.shape[0], self.crop_h, self.crop_w, self.crop_d), order=1, mode='constant', cval=0,
                         clip=True, preserve_range=True)
            
@@ -346,17 +302,12 @@ class UniclsDataset(data.Dataset):
                 sequence_code = torch.tensor(self.code, dtype=torch.int32)
             x7,x8 = x7 * sequence_code[6], x8* sequence_code[7]
         
-        # image = resize(image, (1, self.crop_d, self.crop_h, self.crop_w), order=1, mode='constant', cval=0,
-        #                 clip=True, preserve_range=True)
+     
         x1,x2,x3,x4,x5,x6,x7,x8= x1[np.newaxis, :],x2[np.newaxis, :],x3[np.newaxis, :],x4[np.newaxis, :],x5[np.newaxis, :],x6[np.newaxis, :],x7[np.newaxis, :],x8[np.newaxis, :]
-        # images = images.astype(np.float32)
-        # return image.copy(), label, name,sequence_id,part_id
-        # 添加部位编码和任务编码
-        # 根据part_id映射到部位编码（0-5），转换为one-hot形式
-        region_ids = torch.zeros(10, dtype=torch.float32)  # 6个部位，初始化为全0
         
-        # if part_id == 10:  # AMBL
-        #     region_ids[0] = 1.0
+        region_ids = torch.zeros(10, dtype=torch.float32)  #
+        
+      
         if part_id == 11:  # FedBca
             region_ids[7] = 1.0
         elif part_id == 12:  # NPC
@@ -370,89 +321,12 @@ class UniclsDataset(data.Dataset):
         else:
             raise ValueError(f"Unknown part_id: {part_id}")
         
-        # 任务编码：分类任务为1
-        task_ids = torch.tensor(1, dtype=torch.long)  # 1表示分类任务
+        # task encode：cls is 1
+        task_ids = torch.tensor(1, dtype=torch.long)  #
         
         return x1.to(torch.float32),x2.to(torch.float32),x3.to(torch.float32),x4.to(torch.float32),\
         x5.to(torch.float32),x6.to(torch.float32),x7.to(torch.float32),x8.to(torch.float32),name,label,sequence_code,region_ids,task_ids
-        # if name[:3] in ['Bra']:
-        #     x1, x2, x3, x4 = images[0, ...], images[1, ...], images[2, ...], images[3, ...]  # (t1, t1ce, t2, f)(128,128,96)
-        #     x5, x6 =  [torch.zeros_like(images[0, ...]) for _ in range(2)]
-        #     sequence_code = torch.zeros(6, dtype=torch.int32)
-        #     if self.split == 'train':
-        #         random_indices = [0, 1, 2, 3]
-        #         if torch.rand(1) <= 0.5:
-        #             while sequence_code[random_indices].sum() == 0:
-        #                 sequence_code[random_indices] = torch.randint(0, 2, (len(random_indices),), dtype=sequence_code.dtype)
-        #         else:
-        #             sequence_code[0:4] = 1
-        #     elif self.split == 'val':
-        #         sequence_code[0:4] = 1
-        #     else:
-        #         sequence_code = torch.tensor(self.code, dtype=torch.int32)
-        #     x1, x2, x3, x4 = x1 * sequence_code[0], x2 * sequence_code[1], x3 * sequence_code[2], x4 * sequence_code[3]
-        # elif name[:3] in ["cen"]:
-        #     x3 = images[0, ...]  # (t2w)(128,128,96)
-        #     x1, x2, x4, x5, x6 = [torch.zeros_like(images[0, ...]) for _ in range(5)]
-        #     sequence_code = torch.zeros(6, dtype=torch.int32)
-        #     sequence_code[2] = 1 
-        # elif name[:3] in ['NPC']:
-        #     x1, x2, x3 = images[0, ...], images[1, ...], images[2, ...]  # (t1, t1c, t2)(128,128,96)
-        #     x4, x5, x6 = [torch.zeros_like(images[0, ...]) for _ in range(3)]
-        #     sequence_code = torch.zeros(6, dtype=torch.int32)
-        #     if self.split == 'train':
-        #         random_indices = [0, 1, 2]
-        #         if torch.rand(1) <= 0.5:
-        #             while sequence_code[random_indices].sum() == 0:
-        #                 sequence_code[random_indices] = torch.randint(0, 2, (len(random_indices),),dtype=sequence_code.dtype)
-        #         else:
-        #             sequence_code[[0, 1, 2]] = 1
-        #     elif self.split == 'val':
-        #         sequence_code[[0, 1, 2]] = 1
-        #     else:
-        #         sequence_code = torch.tensor(self.code, dtype=torch.int32)
-        #     x1, x2, x3 = x1 * sequence_code[0], x2 * sequence_code[1], x3 * sequence_code[2]
-        # elif name[:3] in ['amb','Bre']:
-        #     x1, x2 = images[0, ...], images[1, ...] # (t1, t1ce)(128,128,96)
-        #     x3,x4,x5,x6 = [torch.zeros_like(images[0, ...]) for _ in range(4)]
-        #     sequence_code = torch.zeros(6, dtype=torch.int32)
-        #     if self.split == 'train':
-        #         random_indices = [0,1]
-        #         if torch.rand(1) <= 0.5:
-        #             while sequence_code[random_indices].sum() == 0:
-        #                 sequence_code[random_indices] = torch.randint(0, 2, (len(random_indices),),dtype=sequence_code.dtype)
-        #         else:
-        #             sequence_code[[0,1]] = 1
-        #     elif self.split == 'val':
-        #         sequence_code[[0,1]] = 1
-        #     else:
-        #         sequence_code = torch.tensor(self.code, dtype=torch.int32)
-        #     x1,x2 = x1 * sequence_code[0], x2 * sequence_code[1]
-        # elif name[:3] in ['LLD']:
-        #     x5, x6 = images[0, ...], images[1, ...]  # (t1, t1c, t2)(128,128,96)
-        #     x1,x2,x3, x4 = [torch.zeros_like(images[0, ...]) for _ in range(4)]
-        #     sequence_code = torch.zeros(6, dtype=torch.int32)
-        #     if self.split == 'train':
-        #         random_indices = [4,5]
-        #         if torch.rand(1) <= 0.5:
-        #             while sequence_code[random_indices].sum() == 0:
-        #                 sequence_code[random_indices] = torch.randint(0, 2, (len(random_indices),),dtype=sequence_code.dtype)
-        #         else:
-        #             sequence_code[[4,5]] = 1
-        #     elif self.split == 'val':
-        #         sequence_code[[4,5]] = 1
-        #     else:
-        #         sequence_code = torch.tensor(self.code, dtype=torch.int32)
-        #     x5,x6 = x5 * sequence_code[4], x6* sequence_code[5]
-        
-        # # image = resize(image, (1, self.crop_d, self.crop_h, self.crop_w), order=1, mode='constant', cval=0,
-        # #                 clip=True, preserve_range=True)
-        # x1,x2,x3,x4,x5,x6= x1[np.newaxis, :],x2[np.newaxis, :],x3[np.newaxis, :],x4[np.newaxis, :],x5[np.newaxis, :],x6[np.newaxis, :]
-        # # images = images.astype(np.float32)
-        # # return image.copy(), label, name,sequence_id,part_id
-        # return x1.to(torch.float32),x2.to(torch.float32),x3.to(torch.float32),x4.to(torch.float32),\
-        # x5.to(torch.float32),x6.to(torch.float32),name,label,sequence_code
-
+        #
 
 def get_train_transform():
     tr_transforms = []
@@ -487,7 +361,7 @@ def tr_cls_collate(batch):
     label = np.stack(label, 0)
     name = np.stack(name, 0)
     sequence_code = np.stack(sequence_code, 0)
-    region_ids = np.stack(region_ids, 0)  # 现在是 [B, 6] 的one-hot向量
+    region_ids = np.stack(region_ids, 0) 
     task_ids = np.stack(task_ids, 0)
     data_dict = {
         'x1': x1,'x2': x2, 'x3': x3, 'x4': x4, 'x5': x5, 'x6': x6,'x7': x7, 'x8': x8, 
@@ -506,62 +380,3 @@ def val_cls_collate(batch):
     # task_id = np.stack(task_id, 0)
     data_dict = {'image': image, 'label': label, 'name': name, 'sequence_id': sequence_id,'prompt_id': prompt_id}
     return data_dict
-if __name__=="__main__":
-    import torch
-    from torch.utils.data import DataLoader
-    from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
-    
-    # Set your data root and text file
-    data_dir = "/data/zzn/UniMRINet/dataset/"
-    train_list = "/data/zzn/UniMRINet/dataset/classification/cls_val.txt"  # 根据你的实际文件名替换
-    max_iters = None  # 或者设置为你想要的训练迭代次数
-    batch_size = 1  # 根据你的需要设置
-    crop_size = (96,96, 96)  # 根据你的需要设置
-    random_scale = True  # 是否使用随机缩放
-    random_mirror = True  # 是否使用随机镜像
-    position_prompt_dict= {
-    "10AMBL":0,
-    "11FedBca":1,
-    "12NPC":2,
-    "13LLD":3,
-    "14BraTS":4
-}
-    nn_dataset =  UniclsDataset(data_dir, train_list, split="train",  crop_size=crop_size,
-                                scale=random_scale, mirror=random_mirror)
-    
-    def weight_base_init(nn_dataset):
-        # 计算每个器官对应的数量，以生成权重
-        position_num_dict = {}
-       
-        for dataset_index, dataset_name in enumerate(nn_dataset.cls_use_dataset):
-            if position_prompt_dict[dataset_name] not in position_num_dict:
-                position_num_dict[position_prompt_dict[dataset_name]] = nn_dataset.subset_len[dataset_index]#数据路径列表
-            else:
-                position_num_dict[position_prompt_dict[dataset_name]] += nn_dataset.subset_len[dataset_index]
-        # 计算权重 1/sqrt(n)
-        position_weight_dict = {}
-        for position in position_num_dict:
-            position_weight_dict[position] = 1 / (position_num_dict[position])
-
-        # 生成权重序列
-        all_sample_weight_list = []
-        for dataset_index, dataset_name in enumerate(nn_dataset.cls_use_dataset):
-            all_sample_weight_list += [position_weight_dict[position_prompt_dict[dataset_name]]] * nn_dataset.subset_len[dataset_index]
-            
-        return all_sample_weight_list
-    
-    samples_weight=weight_base_init(nn_dataset)
-    # print(samples_weight)
-    sampler = WeightedRandomSampler(samples_weight, num_samples=len(samples_weight), replacement=True)
-
-    # 创建 DataLoader
-    dataloader = DataLoader(nn_dataset, batch_size=6, sampler=sampler)
-
-    # 遍历 DataLoader 并打印样本
-    for batch_idx, batch in enumerate(dataloader):
-        x1,x2,x3,x4,x5,x6,x7,x8,name,label,sequence_code,region_ids,task_ids= batch
-        print(f"Batch {batch_idx}")
-        print(f"Region IDs (one-hot): {region_ids}")  # 现在显示one-hot向量
-        print(f"Task IDs: {task_ids}")
-        print(f"Name: {name}")
-        print(f"Label: {label}")
