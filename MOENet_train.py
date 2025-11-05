@@ -282,15 +282,7 @@ def main():
                                 )
 
     writer = SummaryWriter('../tensorboard'+args.tensorboard_log_name)
-    # # 添加计算图
-    # # 从数据加载器获取一个批次数据
-    # sample_data = next(iter(train_seg_loader))
-
-    # # 假设 sample_data 是一个包含图像和标签的字典，提取图像部分作为输入
-    # input_data = torch.from_numpy(sample_data['image']).to(device)  
-  
-    # # 将模型计算图添加到 TensorBoard
-    # writer.add_graph(model, input_data)
+    
 
     all_tr_seg_loss = []
     all_va_seg_loss = []
@@ -492,9 +484,9 @@ def main():
                         # # print( volumeName,N)
                         for i in range(N):
                             # print
-                            dataset_name = volumeName[i][:3]  # 获取当前样本的数据集名称 
-                            sample_pred = cls_preds[i]  # 添加批次维度
-                            sample_label = labels[i].unsqueeze(0)   # 添加批次维度
+                            dataset_name = volumeName[i][:3]  
+                            sample_pred = cls_preds[i]  
+                            sample_label = labels[i].unsqueeze(0)   
                             # print(i,dataset_name,sample_pred,sample_label)
                             ce_loss = loss_cls(sample_pred, sample_label)
                             
@@ -515,9 +507,9 @@ def main():
                         
                      
                         if dataset_prefix in all_labels:
-                            all_labels[dataset_prefix].extend(labels.cpu().numpy().tolist())  # 转换为列表
-                            all_preds[dataset_prefix].extend(preds.cpu().numpy().tolist())    # 转换为列表
-                            all_probs[dataset_prefix].extend(probs.cpu().numpy().tolist())    # 转换为列表
+                            all_labels[dataset_prefix].extend(labels.cpu().numpy().tolist())  
+                            all_preds[dataset_prefix].extend(preds.cpu().numpy().tolist())    
+                            all_probs[dataset_prefix].extend(probs.cpu().numpy().tolist())    
                         else:
                             print(f"error:'{dataset_prefix}'")
 
