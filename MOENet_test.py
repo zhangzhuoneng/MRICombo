@@ -30,7 +30,7 @@ from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix, ave
 from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix, average_precision_score, roc_curve, precision_recall_curve
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use('Agg')  # 使用非交互式后端
+matplotlib.use('Agg') 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp import StateDictType
 def str2bool(v):
@@ -208,14 +208,14 @@ def plot_summary_curves(all_labels, all_probs, dataset_names, plot_dir):
         if len(labels) == 0:
             continue
             
-        if dataset_name == "NPC":  # 四分类数据集
+        if dataset_name == "NPC":  
             labels_bin = label_binarize(labels, classes=[0, 1, 2, 3])
             auc_scores = []
             for i in range(4):
                 auc_scores.append(roc_auc_score(labels_bin[:, i], probs[:, i]))
             auc = np.mean(auc_scores)
             
-            # 计算宏平均ROC
+           
             all_fpr = np.unique(np.concatenate([roc_curve(labels_bin[:, i], probs[:, i])[0] 
                                               for i in range(4)]))
             mean_tpr = np.zeros_like(all_fpr)
@@ -232,7 +232,7 @@ def plot_summary_curves(all_labels, all_probs, dataset_names, plot_dir):
                 auprc_scores.append(average_precision_score(labels_bin[:, i], probs[:, i]))
             auprc = np.mean(auprc_scores)
             
-            # 计算宏平均PR
+         
             all_recall = np.linspace(0, 1, 100)
             mean_precision = np.zeros_like(all_recall)
             for i in range(4):
@@ -243,7 +243,7 @@ def plot_summary_curves(all_labels, all_probs, dataset_names, plot_dir):
             ax2.plot(all_recall, mean_precision, color=colors[idx % len(colors)], 
                     linewidth=3, label=f'{dataset_name} (AUPRC = {auprc:.3f})')
             
-        else:  # 二分类数据集
+        else:  
             fpr, tpr, _ = roc_curve(labels, probs[:, 1])
             roc_auc = roc_auc_score(labels, probs[:, 1])
             ax1.plot(fpr, tpr, color=colors[idx % len(colors)], 
@@ -428,8 +428,7 @@ def validate(args, input_size, model, Val_cls_Loader, Val_seg_Loader, device, nu
                         seg_region_ids=seg_region_ids,
                         cls_region_ids=None
                     )
-                # 调用模型
-                # 
+               
                 return seg_preds
         
 
