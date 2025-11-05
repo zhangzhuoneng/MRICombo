@@ -2,13 +2,13 @@
 
 ## Overview
 
-MRICombo is a unified multi-task deep learning framework for MRI image analysis, featuring a Mixture of Experts (MoE) architecture for both segmentation and classification tasks across multiple anatomical regions.
+MRICombo is a unified multi-task deep learning framework for MRI image analysis, featuring a Mixture of Experts (MoE) architecture for both segmentation and classification tasks across multiple anatomical regions with varying sequence combinations.
 
 ## Features
 
 - **Multi-Task Learning**: Simultaneous segmentation and classification
 - **Mixture of Experts (MoE)**: Dynamic expert routing based on region and task
-- **Multi-Sequence Support**: Handles up to 8 different MRI sequences
+- **Multi-Sequence Support**: Handles up to 8 different MRI sequences in segmentation or classification task
 - **Cross-Domain Generalization**: Trained on multiple anatomical regions
 
 ## Project Structure
@@ -77,7 +77,7 @@ The MRICombo framework consists of:
 - Nasopharyngeal carcinoma
 - Breast tumors
 - Liver tumors
-- Abdominal organs (11 organs)
+- Abdominal organs
 - Pelvic malignancies
 
 ### Classification
