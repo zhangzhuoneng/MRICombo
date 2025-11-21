@@ -70,7 +70,7 @@ class Attention_code_block(nn.Module):
         )
     def forward(self, fusion_map, x1, x2, x3, x4,x5,x6,x7): 
         
-        # 计算每个 attention
+        # Calculate/Compute每个 attention
         # print(fusion_map.shape, x1.shape)
         attention1 = self.attention1(torch.cat((fusion_map, x1), 1))
         # print(attention1.shape)
@@ -84,7 +84,7 @@ class Attention_code_block(nn.Module):
         attention_stack = torch.stack((attention1, attention2, attention3, attention4, attention5, attention6, attention7), dim=1)
         # print(attention_stack.shape)
         # 对拼接后的张量沿着第1维应用 softmax (每个 attention 的贡献度)
-        attention_softmax = F.softmax(attention_stack, dim=1)  # 在新维度 dim=1 上应用 softmax
+        attention_softmax = F.softmax(attention_stack, dim=1)  # 在新dimension dim=1 上应用 softmax
         # print( attention_softmax.shape)
         # 将 softmax 结果分离成单独的 attention
         attention1, attention2, attention3, attention4, attention5, attention6, attention7= torch.chunk(attention_softmax, 7, dim=1)
@@ -586,10 +586,10 @@ class no_share_unet(nn.Module):
             stage2Out1,stage2Out2,stage2Out3,stage2Out4,stage2Out5,stage2Out6,stage2Out7,out1,out2, out3, out4,out5, out6, out7,cat_out
 
 if __name__ == '__main__':
-    # 设置第7张GPU
+    # Set/Setup第7张GPU
     torch.cuda.set_device(7)
 
-    # 创建输入张量并移动到第7张GPU
+    # Createinput张量并移动到第7张GPU
     x1 = torch.rand(1, 1, 128, 128, 128).cuda()
     x2 = torch.rand(1, 1, 128, 128, 128).cuda()
     x3 = torch.rand(1, 1, 128, 128, 128).cuda()
@@ -599,10 +599,10 @@ if __name__ == '__main__':
     x7 = torch.rand(1, 1, 128, 128, 128).cuda()
     mask = torch.tensor([[1, 1, 0, 0, 0, 0, 0]]).cuda()
 
-    # 创建模型并移动到第7张GPU
+    # Create模型并移动到第7张GPU
     model = no_share_unet(in_channel=1, out_channel=3, diff=True, deepSupvision=True).cuda()
 
-    # 运行模型并打印输出形状
+    # 运行模型并Printoutputshape
     res = model(x1, x2, x3, x4, x5, x6, x7, mask)
     print(res)
 

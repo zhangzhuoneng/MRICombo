@@ -68,14 +68,14 @@ class GatingNetwork(nn.Module):
         self.num_regions = num_regions
         self.num_tasks = num_tasks
         
-        # 部位编码和任务编码的维度
+        # 部位编码和任务编码的dimension
         self.region_embedding_dim = 32
         self.task_embedding_dim = 16
         
-        # 部位编码处理层（one-hot输入）
+        # 部位编码Process/Handle层（one-hotinput）
         self.region_embedding = nn.Linear(num_regions, self.region_embedding_dim)
         
-        # 任务编码处理层（one-hot输入）
+        # 任务编码Process/Handle层（one-hotinput）
         self.task_embedding = nn.Linear(num_tasks, self.task_embedding_dim)
         
         # 编码融合层
@@ -85,7 +85,7 @@ class GatingNetwork(nn.Module):
             nn.Linear(64, 32)
         )
         
-        # 特征融合层 - 将编码信息与输入特征结合
+        # 特征融合层 - 将编码信息与input特征结合
         self.feature_fusion = nn.Sequential(
             nn.Linear(in_features + 32, 128),
             nn.ReLU(),
@@ -95,11 +95,11 @@ class GatingNetwork(nn.Module):
     def forward(self, x, region_ids=None, task_ids=None):
         """
         Args:
-            x: 输入特征 [B, C, H, W, D] 或 [B, C]
+            x: input特征 [B, C, H, W, D] 或 [B, C]
             region_ids: 部位one-hot编码 [B, num_regions] - 10维或6维one-hot向量
-            task_ids: 任务one-hot编码 [B, num_tasks] - 2维one-hot向量 [分割, 分类]
+            task_ids: 任务one-hot编码 [B, num_tasks] - 2维one-hot向量 [分割, classification]
         """
-        # 处理输入特征
+        # Process/Handleinput特征
         if len(x.shape) > 2:
             # 如果是特征图，先进行全局池化
             batch_size = x.shape[0]
@@ -116,7 +116,7 @@ class GatingNetwork(nn.Module):
         if task_ids is None:
             task_ids = torch.zeros(batch_size, self.num_tasks, dtype=torch.float32, device=x.device)
         
-        # 获取部位编码和任务编码
+        # Get/Obtain部位编码和任务编码
         region_emb = self.region_embedding(region_ids)  # [B, region_embedding_dim]
         task_emb = self.task_embedding(task_ids)        # [B, task_embedding_dim]
         
@@ -126,10 +126,10 @@ class GatingNetwork(nn.Module):
         # 融合编码信息
         fused_encoding = self.encoding_fusion(combined_encoding)  # [B, 32]
         
-        # 将编码信息与输入特征结合
+        # 将编码信息与input特征结合
         combined_features = torch.cat([pooled_x, fused_encoding], dim=1)  # [B, in_features + 32]
         
-        # 计算专家权重
+        # Calculate/Compute专家权重
         logits = self.feature_fusion(combined_features)
         gates = F.softmax(logits, dim=1)
        
@@ -156,7 +156,7 @@ class MRICombo(nn.Module):
             SequenceExpert(seg_in_ch, base_ch, block, kernel_size[0], norm) for _ in range(8)
         ])
         
-        # 序列特征提取专家 - 分类任务
+        # 序列特征提取专家 - classification任务
         self.cls_experts = nn.ModuleList([
             SequenceExpert(cls_in_ch, base_ch, block, kernel_size[0], norm) for _ in range(8)
         ])
@@ -196,7 +196,7 @@ class MRICombo(nn.Module):
                 num_encoder_experts, 
                 self.top_k_encoder,
                 num_regions=10,  # 10个部位
-                num_tasks=2      # 2个任务（分割/分类）
+                num_tasks=2      # 2个任务（分割/classification）
             )
             for i in range(4)
         ])
@@ -208,12 +208,12 @@ class MRICombo(nn.Module):
                 num_decoder_experts, 
                 self.top_k_decoder,
                 num_regions=10,  # 10个部位
-                num_tasks=2      # 2个任务（分割/分类）
+                num_tasks=2      # 2个任务（分割/classification）
             )
             for i in range(4)
         ])
         
-        # 输出层
+        # output层
         self.outc = nn.Conv3d(base_ch, num_classes, kernel_size=1)
         # Task importance weights (learnable)
             
@@ -238,8 +238,8 @@ class MRICombo(nn.Module):
 
         losses = []
         for g in self._lb_gates:
-            # 平均到专家维度 [E]
-            pj = g.mean(dim=0)  # soft 使用概率
+            # 平均到专家dimension [E]
+            pj = g.mean(dim=0)  # soft 使用probability
             E = pj.numel()
             if kind == 'kl':
                 # KL(p || U) = sum_j p_j * log(p_j * E)
@@ -256,7 +256,7 @@ class MRICombo(nn.Module):
         return lb_loss
     def _compute_equal_weights(self, sequence_code):
         """
-        计算等权重：对于sequence_code中值为1的序列，给予相等的权重
+        Calculate/Compute等权重：对于sequence_code中值为1的序列，给予相等的权重
         
         Args:
             sequence_code: [B, 8] 的tensor，其中1表示该序列存在，0表示不存在
@@ -264,20 +264,20 @@ class MRICombo(nn.Module):
         Returns:
             weight: [B, 8] 的tensor，对于存在的序列给予相等权重
         """
-        # 计算每个样本中有多少个序列存在
+        # Calculate/Compute每个sample中有多少个序列存在
         num_sequences = sequence_code.sum(dim=1, keepdim=True)  # [B, 1]
         
         # 防止除零错误
         num_sequences = torch.clamp(num_sequences, min=1.0)
         
-        # 计算等权重：存在的序列权重为1/num_sequences，不存在的序列权重为0
+        # Calculate/Compute等权重：存在的序列权重为1/num_sequences，不存在的序列权重为0
         equal_weights = sequence_code.float() / num_sequences  # [B, 8]
         
         return equal_weights
         
     def _compute_learned_weights(self, sequence_code, gate_network):
         """
-        计算学习的权重：通过门控网络学习权重
+        Calculate/Compute学习的权重：通过门控网络学习权重
         
         Args:
             sequence_code: [B, 8] 的tensor
@@ -289,7 +289,7 @@ class MRICombo(nn.Module):
         sequence_code = sequence_code.float()
         softmax_output = torch.softmax(gate_network(sequence_code), dim=-1) + self.epision
         weight = sequence_code * softmax_output
-        # 防止除零错误，先检查是否有序列被选择
+        # 防止除零错误，先Check是否有序列被选择
         weight_sum = weight.sum(dim=1, keepdim=True)
         # 确保权重和不为零
         weight_sum = torch.clamp(weight_sum, min=self.epision)
@@ -301,13 +301,13 @@ class MRICombo(nn.Module):
         channels = x.shape[1]
         # print(f"Encoder input shape: {x.shape}, channels: {channels}")
         
-        # 测试池化后的维度
+        # 测试池化后的dimension
         pooled = F.adaptive_avg_pool3d(x, 1).view(batch_size, -1)
         # print(f"Pooled shape: {pooled.shape}")
-        # 计算门控权重
+        # Calculate/Compute门控权重
         gates = gate_network(x)
         
-        # 获取top-k专家
+        # Get/Obtaintop-k专家
         top_k_gates, top_k_indices = torch.topk(gates, gate_network.top_k, dim=1)
         # 防止除零错误
         top_k_sum = top_k_gates.sum(dim=1, keepdim=True)
@@ -319,7 +319,7 @@ class MRICombo(nn.Module):
         skips = []
         
         for i in range(batch_size):
-            # 加权组合专家输出
+            # 加权组合专家output
             output = None
             skip = None
             
@@ -332,7 +332,7 @@ class MRICombo(nn.Module):
                     out, skp = result
                 else:
                     out = result
-                    skp = x[i:i+1]  # 使用输入作为skip连接
+                    skp = x[i:i+1]  # 使用input作为skip连接
                     
                 weight = top_k_gates[i, j]
                 
@@ -346,7 +346,7 @@ class MRICombo(nn.Module):
             outputs.append(output)
             skips.append(skip)
         
-        # 合并批次结果
+        # 合并batch结果
         outputs = torch.cat(outputs, dim=0)
         skips = torch.cat(skips, dim=0)
         # print(outputs.shape,skips.shape)
@@ -355,12 +355,12 @@ class MRICombo(nn.Module):
     def _apply_moe_decoder(self, x, skip, experts, gate_network):
         batch_size = x.shape[0]
         
-        # 计算门控权重
+        # Calculate/Compute门控权重
         gates = gate_network(x)
         # 收集用于均衡负载
         self._accumulate_lb_gates(gates)
         
-        # 获取top-k专家
+        # Get/Obtaintop-k专家
         top_k_gates, top_k_indices = torch.topk(gates, gate_network.top_k, dim=1)
         # 防止除零错误
         top_k_sum = top_k_gates.sum(dim=1, keepdim=True)
@@ -371,7 +371,7 @@ class MRICombo(nn.Module):
         outputs = []
         
         for i in range(batch_size):
-            # 加权组合专家输出
+            # 加权组合专家output
             output = None
             
             for j, idx in enumerate(top_k_indices[i]):
@@ -385,7 +385,7 @@ class MRICombo(nn.Module):
             
             outputs.append(output)
         
-        # 合并批次结果
+        # 合并batch结果
         outputs = torch.cat(outputs, dim=0)
         
         return outputs
@@ -395,7 +395,7 @@ class MRICombo(nn.Module):
         Args:
             region_ids: 部位one-hot编码 [B, 10] 或 [B, 6]
         """
-        # 根据任务设置任务ID（one-hot形式）
+        # 根据任务Set/Setup任务ID（one-hot形式）
         batch_size = sequence_code.shape[0]
         # 重置均衡负载缓冲区
         self._reset_lb_buffers()
@@ -405,7 +405,7 @@ class MRICombo(nn.Module):
             task_ids[:, 0] = 1.0  # 分割任务：[1, 0]
         elif task == "cls":
             task_ids = torch.zeros(batch_size, 2, dtype=torch.float32, device=sequence_code.device)
-            task_ids[:, 1] = 1.0  # 分类任务：[0, 1]
+            task_ids[:, 1] = 1.0  # classification任务：[0, 1]
         else:
             print("no task error")
             return None
@@ -421,7 +421,7 @@ class MRICombo(nn.Module):
             x7_features = self.seg_experts[6](x7)
             x8_features = self.seg_experts[7](x8)
             
-            # 序列加权融合 - 根据参数选择权重计算方式
+            # 序列加权融合 - 根据parameter选择权重Calculate/Compute方式
             if use_equal_weights:
                 # 使用等权重
                 weight = self._compute_equal_weights(sequence_code)
@@ -429,7 +429,7 @@ class MRICombo(nn.Module):
                 # 使用学习的权重
                 weight = self._compute_learned_weights(sequence_code, self.seg_sequence_gate)
             
-            # 可选：打印权重用于调试
+            # 可选：Print权重用于调试
             # print(f"Segmentation weights: {weight}")
             
     
@@ -443,7 +443,7 @@ class MRICombo(nn.Module):
                 x7_features * weight[:, 6:7, None, None, None] +
                 x8_features * weight[:, 7:8, None, None, None] 
             )
-            # 暴露聚合特征供外部可视化/分析使用（每次forward都会更新）
+            # 暴露聚合特征供外部可视化/分析使用（每次forward都会Update）
             self.aggrevate_feature_out = aggrevate_feature
                 
             # 编码器阶段 - 使用MOE，传入部位编码和任务编码
@@ -463,16 +463,16 @@ class MRICombo(nn.Module):
                     x, skips[-(i+1)], self.decoder_experts[i], self.decoder_gates[i],
                     region_ids, task_ids
                 )
-                                # 暴露encoder_3_out供外部可视化/分析使用（每次forward都会更新）
+                                # 暴露encoder_3_out供外部可视化/分析使用（每次forward都会Update）
                 if i == 0:
                     self.encoder_0_out = x
                 
             
-            # 输出层
+            # output层
             out = self.outc(x)
-            # 计算均衡负载正则
+            # Calculate/Compute均衡负载正则
             self.get_load_balance_loss(coeff=1.0, kind='kl')
-            # 返回输出和均衡负载正则
+            # 返回output和均衡负载正则
            
             return out
             
@@ -487,7 +487,7 @@ class MRICombo(nn.Module):
             x7_features = self.cls_experts[6](x7)
             x8_features = self.cls_experts[7](x8)
             
-            # 序列加权融合 - 根据参数选择权重计算方式
+            # 序列加权融合 - 根据parameter选择权重Calculate/Compute方式
             if use_equal_weights:
                 # 使用等权重
                 weight = self._compute_equal_weights(sequence_code)
@@ -495,7 +495,7 @@ class MRICombo(nn.Module):
                 # 使用学习的权重
                 weight = self._compute_learned_weights(sequence_code, self.cls_sequence_gate)
             
-            # 可选：打印权重用于调试
+            # 可选：Print权重用于调试
             # print(f"Classification weights: {weight}")
             
             aggrevate_feature = (
@@ -526,12 +526,12 @@ class MRICombo(nn.Module):
     def _apply_moe_encoder_with_encoding(self, x, experts, gate_network, region_ids, task_ids):
         batch_size = x.shape[0]
         
-        # 计算门控权重，传入编码信息
+        # Calculate/Compute门控权重，传入编码信息
         gates = gate_network(x, region_ids, task_ids)
         # 收集用于均衡负载
         self._accumulate_lb_gates(gates)
 
-        # 获取top-k专家
+        # Get/Obtaintop-k专家
         top_k_gates, top_k_indices = torch.topk(gates, gate_network.top_k, dim=1)
         # 防止除零错误
         top_k_sum = top_k_gates.sum(dim=1, keepdim=True)
@@ -543,7 +543,7 @@ class MRICombo(nn.Module):
         skips = []
         
         for i in range(batch_size):
-            # 加权组合专家输出
+            # 加权组合专家output
             output = None
             skip = None
             
@@ -556,7 +556,7 @@ class MRICombo(nn.Module):
                     out, skp = result
                 else:
                     out = result
-                    skp = x[i:i+1]  # 使用输入作为skip连接
+                    skp = x[i:i+1]  # 使用input作为skip连接
                     
                 weight = top_k_gates[i, j]
                 
@@ -570,7 +570,7 @@ class MRICombo(nn.Module):
             outputs.append(output)
             skips.append(skip)
         
-        # 合并批次结果
+        # 合并batch结果
         outputs = torch.cat(outputs, dim=0)
         skips = torch.cat(skips, dim=0)
         
@@ -579,12 +579,12 @@ class MRICombo(nn.Module):
     def _apply_moe_decoder_with_encoding(self, x, skip, experts, gate_network, region_ids, task_ids):
         batch_size = x.shape[0]
         
-                # 计算门控权重，传入编码信息
+                # Calculate/Compute门控权重，传入编码信息
         gates = gate_network(x, region_ids, task_ids)
         # 收集用于均衡负载
         self._accumulate_lb_gates(gates)
 
-        # 获取top-k专家
+        # Get/Obtaintop-k专家
         top_k_gates, top_k_indices = torch.topk(gates, gate_network.top_k, dim=1)
         # 防止除零错误
         top_k_sum = top_k_gates.sum(dim=1, keepdim=True)
@@ -595,7 +595,7 @@ class MRICombo(nn.Module):
         outputs = []
         
         for i in range(batch_size):
-            # 加权组合专家输出
+            # 加权组合专家output
             output = None
             
             for j, idx in enumerate(top_k_indices[i]):
@@ -609,27 +609,27 @@ class MRICombo(nn.Module):
             
             outputs.append(output)
         
-        # 合并批次结果
+        # 合并batch结果
         outputs = torch.cat(outputs, dim=0)
         
         return outputs
 
 ## 使用示例：
 
-# # 创建模型
+# # Create模型
 # model = MRICombo(
 #     seg_in_ch=1, cls_in_ch=1, base_ch=32,
 #     num_encoder_experts=3, num_decoder_experts=3
 # )
 
-# # 准备输入数据
+# # 准备input数据
 # batch_size = 2
 # x1 = torch.randn(batch_size, 1, 64, 64, 64)
-# # ... 其他输入 ...
+# # ... 其他input ...
 
 # # 部位编码：0-9表示10个不同部位
 # sequence_code = torch.tensor([[1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1]])
-# region_ids = torch.tensor([0, 3])  # 第一个样本是部位0，第二个样本是部位3
+# region_ids = torch.tensor([0, 3])  # 第一个sample是部位0，第二个sample是部位3
 
 # # 使用模型
 # output = model(x1, x1, x1, x1, x1, x1, x1, x1, sequence_code, "seg", region_ids)

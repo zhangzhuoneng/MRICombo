@@ -43,7 +43,7 @@ position_cls_dict= {
 
 def list_add_prefix(txt_path, prefix_1):
     '''
-    prefix_1: 用于训练的数据集的路径前缀
+    prefix_1: 用于训练的dataset的路径前缀
     prefix_2: imgs, masks等
     '''
     with open(txt_path, 'r') as f:
@@ -56,14 +56,14 @@ def list_add_prefix(txt_path, prefix_1):
         unique_names = set()
         for line in filtered_lines:
 
-            # 获取文件名部分，并通过规则提取唯一名称
-            filename = line.split('/')[-1]  # 获取文件名
+            # Get/Obtain文件名部分，并通过规则提取唯一名称
+            filename = line.split('/')[-1]  # Get/Obtain文件名
             unique_names.add(filename)
         
         return list(unique_names)
     
     else:
-        return print('数据集错误')
+        return print('dataset错误')
 def get_subset_len(seg_dataset, text_path, split):
     subset_len = []
     for dataset_name in seg_dataset:
@@ -205,7 +205,7 @@ class UniclsDataset(data.Dataset):
         patient = self.files[index]
 
         patient_id = patient["id"]
-        part_id = int(patient_id[11:13])  # 获取部位ID
+        part_id = int(patient_id[11:13])  # Get/Obtain部位ID
         name =  patient_id.split('/')[-1]
         # print(patient_id)
         images = {key:torch.tensor(load_nii(f"{self.root}/{patient_id}/{patient[key]}")) for key in patient if key not in ["id", "label"]}
@@ -245,7 +245,7 @@ class UniclsDataset(data.Dataset):
                   
             images = images.squeeze(0)
             if np.random.rand(1) <= 0.5:
-                #  1. 生成统一的旋转参数
+                #  1. 生成统一的旋转parameter
                 images = rotate_3d_image_and_label(images, angle_spectrum=90)
            
             if np.random.rand(1) <= 0.5:  # mirror_flip W
@@ -353,7 +353,7 @@ class UniclsDataset(data.Dataset):
         # return image.copy(), label, name,sequence_id,part_id
         # 添加部位编码和任务编码
         # 根据part_id映射到部位编码（0-5），转换为one-hot形式
-        region_ids = torch.zeros(10, dtype=torch.float32)  # 6个部位，初始化为全0
+        region_ids = torch.zeros(10, dtype=torch.float32)  # 6个部位，Initialize为全0
         
         # if part_id == 10:  # AMBL
         #     region_ids[0] = 1.0
@@ -370,8 +370,8 @@ class UniclsDataset(data.Dataset):
         else:
             raise ValueError(f"Unknown part_id: {part_id}")
         
-        # 任务编码：分类任务为1
-        task_ids = torch.tensor(1, dtype=torch.long)  # 1表示分类任务
+        # 任务编码：classification任务为1
+        task_ids = torch.tensor(1, dtype=torch.long)  # 1表示classification任务
         
         return x1.to(torch.float32),x2.to(torch.float32),x3.to(torch.float32),x4.to(torch.float32),\
         x5.to(torch.float32),x6.to(torch.float32),x7.to(torch.float32),x8.to(torch.float32),name,label,sequence_code,region_ids,task_ids
@@ -514,9 +514,9 @@ if __name__=="__main__":
     # Set your data root and text file
     data_dir = "/data/zzn/UniMRINet/dataset/"
     train_list = "/data/zzn/UniMRINet/dataset/classification/cls_val.txt"  # 根据你的实际文件名替换
-    max_iters = None  # 或者设置为你想要的训练迭代次数
-    batch_size = 1  # 根据你的需要设置
-    crop_size = (96,96, 96)  # 根据你的需要设置
+    max_iters = None  # 或者Set/Setup为你想要的训练迭代次数
+    batch_size = 1  # 根据你的需要Set/Setup
+    crop_size = (96,96, 96)  # 根据你的需要Set/Setup
     random_scale = True  # 是否使用随机缩放
     random_mirror = True  # 是否使用随机镜像
     position_prompt_dict= {
@@ -530,15 +530,15 @@ if __name__=="__main__":
                                 scale=random_scale, mirror=random_mirror)
     
     def weight_base_init(nn_dataset):
-        # 计算每个器官对应的数量，以生成权重
+        # Calculate/Compute每个器官对应的数量，以生成权重
         position_num_dict = {}
        
         for dataset_index, dataset_name in enumerate(nn_dataset.cls_use_dataset):
             if position_prompt_dict[dataset_name] not in position_num_dict:
-                position_num_dict[position_prompt_dict[dataset_name]] = nn_dataset.subset_len[dataset_index]#数据路径列表
+                position_num_dict[position_prompt_dict[dataset_name]] = nn_dataset.subset_len[dataset_index]#数据路径list
             else:
                 position_num_dict[position_prompt_dict[dataset_name]] += nn_dataset.subset_len[dataset_index]
-        # 计算权重 1/sqrt(n)
+        # Calculate/Compute权重 1/sqrt(n)
         position_weight_dict = {}
         for position in position_num_dict:
             position_weight_dict[position] = 1 / (position_num_dict[position])
@@ -554,10 +554,10 @@ if __name__=="__main__":
     # print(samples_weight)
     sampler = WeightedRandomSampler(samples_weight, num_samples=len(samples_weight), replacement=True)
 
-    # 创建 DataLoader
+    # Create DataLoader
     dataloader = DataLoader(nn_dataset, batch_size=6, sampler=sampler)
 
-    # 遍历 DataLoader 并打印样本
+    # 遍历 DataLoader 并Printsample
     for batch_idx, batch in enumerate(dataloader):
         x1,x2,x3,x4,x5,x6,x7,x8,name,label,sequence_code,region_ids,task_ids= batch
         print(f"Batch {batch_idx}")

@@ -59,7 +59,7 @@ class Attention(nn.Module):
             nn.Linear(self.L, self.ATTENTION_BRANCHES)
         )
 
-        # 分类器
+        # classification器
         self.classifier = nn.Sequential(
             nn.Linear(self.M * self.ATTENTION_BRANCHES, num_classes),
             nn.Softmax(dim=1)
@@ -81,7 +81,7 @@ class Attention(nn.Module):
         # 加权特征
         Z = torch.mm(A, H)
 
-        # 分类
+        # classification
         Y_prob = self.classifier(Z)
         Y_hat = torch.argmax(Y_prob, dim=1)
 
@@ -1084,7 +1084,7 @@ class UNet_brain(nn.Module):
         
     def _compute_equal_weights(self, sequence_code):
         """
-        计算学习的权重：通过门控网络学习权重
+        Calculate/Compute学习的权重：通过门控网络学习权重
         
         Args:
             sequence_code: [B, 8] 的tensor
@@ -1096,7 +1096,7 @@ class UNet_brain(nn.Module):
         sequence_code = sequence_code.float()
         softmax_output = torch.softmax(sequence_code, dim=-1) 
         weight = sequence_code * softmax_output
-        # 防止除零错误，先检查是否有序列被选择
+        # 防止除零错误，先Check是否有序列被选择
         weight_sum = weight.sum(dim=1, keepdim=True)
         # 确保权重和不为零
         # weight_sum = torch.clamp(weight_sum, min=self.epision)
@@ -1221,7 +1221,7 @@ class UNet_seg8(nn.Module):
     
     def _compute_equal_weights(self, sequence_code):
         """
-        计算学习的权重：通过门控网络学习权重
+        Calculate/Compute学习的权重：通过门控网络学习权重
         
         Args:
             sequence_code: [B, 8] 的tensor
@@ -1233,7 +1233,7 @@ class UNet_seg8(nn.Module):
         sequence_code = sequence_code.float()
         softmax_output = torch.softmax(sequence_code, dim=-1) 
         weight = sequence_code * softmax_output
-        # 防止除零错误，先检查是否有序列被选择
+        # 防止除零错误，先Check是否有序列被选择
         weight_sum = weight.sum(dim=1, keepdim=True)
         # 确保权重和不为零
         # weight_sum = torch.clamp(weight_sum, min=self.epision)
@@ -1386,7 +1386,7 @@ if __name__ == "__main__":
     model =  UNet(seg_in_ch=1,cls_in_ch=1, base_ch=32, num_classes=2).to(device)
     x = torch.rand(1, 1,96,96,96).to(device)
     mask_code = torch.tensor([[1,1,1,1,1,1,1]], dtype=torch.float32).to(device)
-    # mask_code = mask_code.unsqueeze(2).unsqueeze(3).unsqueeze(4)  # 调整维度为 (B, 7, 1, 1, 1)
+    # mask_code = mask_code.unsqueeze(2).unsqueeze(3).unsqueeze(4)  # 调整dimension为 (B, 7, 1, 1, 1)
 
     c = model(x,x,x,x,x,x,x,'cls',mask_code)
     

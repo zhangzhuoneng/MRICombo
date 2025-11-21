@@ -33,7 +33,7 @@ class omni_seg_cls(nn.Module):
                 nn.Conv3d(768, 256, kernel_size=1, stride=1, padding=0)
             )
             self.cls_classes=cls_classes
-             # 分类器
+             # classification器
             self.classifier = nn.Sequential(
                 nn.Linear(256,self.cls_classes),
                 nn.Softmax(dim=1)
@@ -55,7 +55,7 @@ class omni_seg_cls(nn.Module):
             #    nn.Linear(128,self.cls_classes))
             # self.classifier = nn.Sequential(
             #    nn.Linear(256,self.cls_classes))
-            # 分类器
+            # classification器
             self.classifier_cen = nn.Sequential( 
                torch.nn.Dropout(0.2), 
                nn.Linear(512,2),
@@ -75,7 +75,7 @@ class omni_seg_cls(nn.Module):
             self.classifier_bre = nn.Sequential(torch.nn.Dropout(0.2), 
                nn.Linear(512,2)
             )
-            self.raw_weight = nn.Parameter(torch.tensor(0.0))  # 可学习参数
+            self.raw_weight = nn.Parameter(torch.tensor(0.0))  # 可学习parameter
         elif backbone == 'MRICombo':
             self.backbone = MRICombo(seg_in_ch=seg_in_channels,cls_in_ch=cls_in_channels,base_ch=32,num_classes=out_channels)
             self.GAP = nn.Sequential(
@@ -92,7 +92,7 @@ class omni_seg_cls(nn.Module):
             #    nn.Linear(128,self.cls_classes))
             # self.classifier = nn.Sequential(
             #    nn.Linear(256,self.cls_classes))
-            # 分类器
+            # classification器
             self.classifier_cen = nn.Sequential( 
                torch.nn.Dropout(0.2), 
                nn.Linear(512,2),
@@ -112,7 +112,7 @@ class omni_seg_cls(nn.Module):
             self.classifier_bre = nn.Sequential(torch.nn.Dropout(0.2), 
                nn.Linear(512,2)
             )
-            self.raw_weight = nn.Parameter(torch.tensor(0.0))  # 可学习参数
+            self.raw_weight = nn.Parameter(torch.tensor(0.0))  # 可学习parameter
         elif backbone == 'unet':
             self.backbone = UNet(seg_in_ch=seg_in_channels,cls_in_ch=cls_in_channels,base_ch=32,num_classes=out_channels)
             # self.backbone = MOEUniMRINet(seg_in_ch=seg_in_channels,cls_in_ch=cls_in_channels,base_ch=32,num_classes=out_channels)
@@ -130,7 +130,7 @@ class omni_seg_cls(nn.Module):
             #    nn.Linear(128,self.cls_classes))
             # self.classifier = nn.Sequential(
             #    nn.Linear(256,self.cls_classes))
-            # 分类器
+            # classification器
             self.classifier_cen = nn.Sequential( 
                torch.nn.Dropout(0.2), 
                nn.Linear(512,2),
@@ -150,7 +150,7 @@ class omni_seg_cls(nn.Module):
             self.classifier_bre = nn.Sequential(torch.nn.Dropout(0.2), 
                nn.Linear(512,2)
             )
-            self.raw_weight = nn.Parameter(torch.tensor(0.0))  # 可学习参数
+            self.raw_weight = nn.Parameter(torch.tensor(0.0))  # 可学习parameter
     
     def get_task_weights(self):
         w = torch.sigmoid(self.raw_weight)  # 保证在(0,1)
@@ -229,7 +229,7 @@ class omni_seg_cls(nn.Module):
                     raise ValueError(f"Unknown dataset prefix: {prefix}")
                 cls_out.append(out)
 
-        # 合并 seg/cls 的负载均衡正则（不存在则按0处理）
+        # 合并 seg/cls 的负载均衡正则（不存在则按0Process/Handle）
         if (seg_lb is not None) or (cls_lb is not None):
             total_lb = 0.0
             if seg_lb is not None: total_lb = total_lb + seg_lb

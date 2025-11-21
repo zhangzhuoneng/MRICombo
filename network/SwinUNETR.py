@@ -1047,14 +1047,14 @@ class SwinTransformer(nn.Module):
         x4_out = self.proj_out(x4, normalize)
         return [x0_out, x1_out, x2_out, x3_out, x4_out]
     # def forward(self, x1_t1c,x2_t1n,x3_t2f,x4_t2w,x5_dce,x6_lca,x7_lcv, mask_code,normalize=True):
-    #     # 对每个输入分别进行 patch embedding
-    #     x0_t1c = self.patch_embed_t1c(x1_t1c)  # 处理 x1_t1c
-    #     x1_t1n = self.patch_embed_t1n(x2_t1n)  # 处理 x2_t1n
-    #     x2_t2f = self.patch_embed_t2f(x3_t2f)  # 处理 x3_t2f
-    #     x3_t2w = self.patch_embed_t2w(x4_t2w)  # 处理 x4_t2w
-    #     x4_dce = self.patch_embed_dce(x5_dce)  # 处理 x5_dce
-    #     x5_lca = self.patch_embed_lca(x6_lca)  # 处理 x6_lca
-    #     x6_lcv = self.patch_embed_lcv(x7_lcv)  # 处理 x7_lcv
+    #     # 对每个input分别进行 patch embedding
+    #     x0_t1c = self.patch_embed_t1c(x1_t1c)  # Process/Handle x1_t1c
+    #     x1_t1n = self.patch_embed_t1n(x2_t1n)  # Process/Handle x2_t1n
+    #     x2_t2f = self.patch_embed_t2f(x3_t2f)  # Process/Handle x3_t2f
+    #     x3_t2w = self.patch_embed_t2w(x4_t2w)  # Process/Handle x4_t2w
+    #     x4_dce = self.patch_embed_dce(x5_dce)  # Process/Handle x5_dce
+    #     x5_lca = self.patch_embed_lca(x6_lca)  # Process/Handle x6_lca
+    #     x6_lcv = self.patch_embed_lcv(x7_lcv)  # Process/Handle x7_lcv
         
         
     # # 加权合成特征，基于 mask_code
@@ -1093,7 +1093,7 @@ if __name__ == "__main__":
     out_channels = 4  # 根据实际情况调整
     feature_size = 48
 
-    # 创建模型实例
+    # Create模型实例
     model = SwinUNETR(
         img_size=img_size,
         in_channels=in_channels,
@@ -1106,11 +1106,11 @@ if __name__ == "__main__":
         spatial_dims=3  # 根据实际情况调整
     )
 
-    # 创建一个五维的输入张量，其中第一个维度是批处理大小
-    x = torch.rand((2, in_channels, *img_size))  # 假设批处理大小为2
+    # Create一个五维的input张量，其中第一个dimension是批Process/Handle大小
+    x = torch.rand((2, in_channels, *img_size))  # 假设批Process/Handle大小为2
 
     # 前向传播
     out = model(x)
 
-    # 打印输出的形状
+    # Printoutput的shape
     print(out.shape)

@@ -2,13 +2,13 @@
 
 ## Overview
 
-MRICombo is a unified multi-task deep learning framework for MRI image analysis, featuring a Mixture of Experts (MoE) architecture for both segmentation and classification tasks across multiple anatomical regions.
+MRICombo is a deep-learning-based framework for universal volume segmentation, grading-staging, and malignancy detection across heterogeneous MRI.
 
 ## Features
 
 - **Multi-Task Learning**: Simultaneous segmentation and classification
 - **Mixture of Experts (MoE)**: Dynamic expert routing based on region and task
-- **Multi-Sequence Support**: Handles up to 8 different MRI sequences
+- **Multi-Sequence Support**: Handles up to 9 different MRI sequences
 - **Cross-Domain Generalization**: Trained on multiple anatomical regions
 
 ## Project Structure
@@ -81,11 +81,11 @@ The MRICombo framework consists of:
 - Pelvic malignancies
 
 ### Classification
-- Brain tumor grading (HGG/LGG)
-- Breast tumor classification (Benign/Malignant)
-- Liver tumor classification (Benign/Malignant)
-- Bladder cancer staging (MIBC/NMIBC)
-- NPC T-staging (T1-T2/T3-T4)
+- Brain tumor grading
+- Breast tumor malignant detection
+- Liver tumor malignant detection
+- Bladder cancer staging
+- NPC T-staging
 
 ## Citation
 
@@ -97,7 +97,9 @@ If you use this code in your research, please cite:
 
 ## License
 
-[Specify your license here]
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## Contact
 
@@ -106,4 +108,9 @@ For questions or issues, please open an issue on GitHub or contact [your email].
 ## Acknowledgments
 
 This work was supported by [funding sources].
+
+
+
+
+
 
