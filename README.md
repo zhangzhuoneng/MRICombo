@@ -87,13 +87,6 @@ The MRICombo framework consists of:
 - Bladder cancer staging
 - NPC T-staging
 
-## Citation
-
-If you use this code in your research, please cite:
-
-```
-[Your paper citation will go here]
-```
 
 ## License
 
@@ -103,11 +96,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Contact
 
-For questions or issues, please open an issue on GitHub or contact [your email].
+For questions or issues, please open an issue on GitHub or contact [p2316955@mpu.edu.mo].
 
-## Acknowledgments
-
-This work was supported by [funding sources].
 
 
 
