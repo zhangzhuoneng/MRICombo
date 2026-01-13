@@ -182,6 +182,83 @@ dataset/MR_Dataset/{DATASET_ID}{DATASET_NAME}/
 **Sequences**: ADC, DWI, T2  
 **Classes**: 1 (Clinically significant lesion)
 
+
+### Classification Datasets (11-15)
+
+The following datasets are primarily used for classification tasks (tumor grading, staging, malignancy detection):
+
+#### 11. FedBca (Federated Breast Cancer)
+```
+11FedBca/
+└── center1_001/
+    ├── center1_001_t2.nii.gz     # T2-weighted
+    └── center1_001_seg.nii.gz    # Segmentation labels
+```
+
+**Sequences**: T2  
+**Classification Task**: Benign vs Malignant breast tumors  
+**Segmentation Classes**: 1 (Tumor)  
+**Classification Labels**: 0=benign, 1=malignant
+
+#### 12. NPC (Nasopharyngeal Carcinoma - Classification)
+```
+12NPC/
+└── NPC_001/
+    ├── NPC_001_t1.nii.gz         # T1-weighted
+    ├── NPC_001_t1c.nii.gz        # T1-contrast
+    ├── NPC_001_t2.nii.gz         # T2-weighted
+    └── NPC_001_seg.nii.gz        # Segmentation labels
+```
+
+**Sequences**: T1, T1c, T2  
+**Classification Task**: T-staging (T1-T2 vs T3-T4)  
+**Segmentation Classes**: 2 (GTVnx, GTVnd)  
+**Classification Labels**: 0=T1-T2 (early stage), 1=T3-T4 (advanced stage)
+
+#### 13. LLD (Liver Lesion Detection)
+```
+13LLD/
+└── LLD_MR102385/
+    ├── LLD_MR102385_C+A.nii.gz   # Arterial phase (contrast-enhanced)
+    └── LLD_MR102385_C+V.nii.gz   # Venous phase (contrast-enhanced)
+```
+
+**Sequences**: C+A (Arterial phase), C+V (Venous phase)  
+**Classification Task**: Benign vs Malignant liver lesions  
+**Classification Labels**: 0=benign, 1=malignant
+
+#### 14. BraTS (Brain Tumor - Classification)
+```
+14BraTS/
+└── Brats18_2013_0_1/
+    ├── Brats18_2013_0_1_t1.nii.gz       # T1-weighted
+    ├── Brats18_2013_0_1_t1ce.nii.gz     # T1-contrast enhanced
+    ├── Brats18_2013_0_1_t2.nii.gz       # T2-weighted
+    ├── Brats18_2013_0_1_flair.nii.gz    # FLAIR
+    └── Brats18_2013_0_1_seg.nii.gz      # Segmentation labels
+```
+
+**Sequences**: T1, T1ce, T2, FLAIR  
+**Classification Task**: Tumor grading (LGG vs HGG)  
+**Segmentation Classes**: 3 (ET, TC, WT)  
+**Classification Labels**: 
+- 0 = LGG (Low-Grade Glioma, WHO grade II)
+- 1 = HGG (High-Grade Glioma, WHO grade III-IV)
+
+**Note**: This is the same anatomical region as 0BraTS but used for classification rather than segmentation.
+
+#### 15. BreaDM (Breast Dynamic Malignancy)
+```
+15BreaDM/
+└── BreaDM-Be-1801/
+    ├── BreaDM-Be-1801_pre-dce.nii.gz    # Pre-contrast DCE
+    └── BreaDM-Be-1801_pos-dce.nii.gz    # Post-contrast DCE
+```
+
+**Sequences**: Pre-DCE, Post-DCE (Dynamic contrast-enhanced MRI)  
+**Classification Task**: Benign vs Malignant breast tumors  
+**Classification Labels**: 0=benign, 1=malignant
+
 ## 📝 Data List Files
 
 ### Segmentation Lists
@@ -204,20 +281,37 @@ Example `seg_train.txt`:
 
 Example `cls_train.txt`:
 ```
-0BraTS/BraTS_001 1      # HGG
-0BraTS/BraTS_002 0      # LGG
-2NPC/NPC_001 1          # T3-T4
-3ISPY/ISPY_001 1        # Malignant
+2NPC/NPC_001 1              # T3-T4 (segmentation dataset)
+3ISPY/ISPY_001 1            # Malignant (segmentation dataset)
+8ProstateX/ProstateX_001 1  # MIBC (segmentation dataset)
+11FedBca/center1_001 1      # Malignant (classification dataset)
+12NPC/NPC_001 1             # T3-T4 (classification dataset)
+13LLD/LLD_MR102385 0        # Benign (classification dataset)
+14BraTS/Brats18_2013_0_1 1  # HGG (classification dataset)
+15BreaDM/BreaDM-Be-1801 1   # Malignant (classification dataset)
 ...
 ```
 
-**Classification Labels**:
-- **BraTS**: 0=LGG (low-grade glioma), 1=HGG (high-grade glioma)
-- **NPC**: 0=T1-T2, 1=T3-T4
-- **ISPY**: 0=benign, 1=malignant
-- **Breast**: 0=benign, 1=malignant
-- **Liver**: 0=benign, 1=malignant
-- **Bladder**: 0=NMIBC, 1=MIBC
+**Classification Labels by Dataset**:
+
+**Segmentation Datasets (0-10)**:
+- **0-BraTS** (segmentation): Not used for classification in this context
+- **1-HNTS**: Not used for classification
+- **2-NPC** (segmentation+classification): 0=T1-T2, 1=T3-T4
+- **3-ISPY** (segmentation+classification): 0=benign, 1=malignant
+- **4-ATLAS**: Not used for classification
+- **5-Colorectal**: Not used for classification
+- **6-AMOS**: Not used for classification
+- **7-BCa_seg**: Not used for classification
+- **8-ProstateX** (segmentation+classification): 0=NMIBC, 1=MIBC
+- **9-csPCa_seg**: Not used for classification
+
+**Classification Datasets (11-15)**:
+- **11-FedBca**: 0=benign, 1=malignant (breast)
+- **12-NPC**: 0=T1-T2, 1=T3-T4 (NPC T-staging)
+- **13-LLD**: 0=benign, 1=malignant (liver)
+- **14-BraTS**: 0=LGG, 1=HGG (glioma grading)
+- **15-BreaDM**: 0=benign, 1=malignant (breast)
 
 ## 🔧 Data Preprocessing
 
