@@ -9,12 +9,11 @@ import os.path as osp
 from torch.utils.tensorboard import SummaryWriter
 import logging
 import pandas as pd
-from models.OmniNet import omni_seg_cls
+from network.OmniNet import omni_seg_cls
 from MOE_dataset_seg import UnisegDataset,tr_seg_collate
 from MOE_dataset_cls import UniclsDataset, tr_cls_collate,val_cls_collate
 import random
 import timeit
-from loss_functions import omni_loss
 from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from utils import ChinaTimeFormatter, adjust_learning_rate, weight_base_init, WeightedRandomSamplerDDP
@@ -24,7 +23,6 @@ from monai.inferers import sliding_window_inference
 from sklearn.metrics import accuracy_score
 from torch.nn.parallel import DistributedDataParallel 
 from sklearn.metrics import accuracy_score
-from PCGrad import PCGrad
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix, average_precision_score
 from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix, average_precision_score, roc_curve, precision_recall_curve
@@ -46,17 +44,13 @@ def get_arguments():
     Returns:
       A list of parsed arguments.
     """
-    parser = argparse.ArgumentParser(description="UniMRINet")
-    parser.add_argument("--data_dir", type=str, default="/data/zzn/UniMRINet/dataset/")
-    parser.add_argument("--excel_dir", type=str, default='csv/MRICombo_output_external_liver_tumor_merged_seg')
-    # parser.add_argument("--val_seg_list", type=str, default="/data/zzn/UniMRINet/dataset/classification/cls_val_demo.txt")
-    # parser.add_argument("--val_seg_list", type=str, default= "/data/zzn/UniMRINet/dataset/segmentation/seg_test_1.txt" )
-    parser.add_argument("--val_seg_list", type=str, default= "/data/zzn/UniMRINet/dataset/segmentation/external/liver_seg_test_1.txt" )
-    # parser.add_argument("--val_cls_list", type=str, default='/data/zzn/UniMRINet/dataset/dataset_orginal/txt/12NPC/test_new.txt')
-    parser.add_argument("--val_cls_list", type=str, default='/data/zzn/UniMRINet/dataset/classification/cls_test_new.txt')
+    parser = argparse.ArgumentParser(description="MRICombo")
+    parser.add_argument("--data_dir", type=str, default="../dataset", help="Path to dataset root directory")
+    parser.add_argument("--excel_dir", type=str, default='csv/MRICombo_output')
+    parser.add_argument("--val_seg_list", type=str, default="../dataset/segmentation/seg_test.txt", help="Path to test segmentation list")
+    parser.add_argument("--val_cls_list", type=str, default='../dataset/classification/cls_test.txt', help="Path to test classification list")
     parser.add_argument('--backbone_name', default='MRICombo', help='backbone unet,swinunetr,DeepFusionUniMRINet')
-    # parser.add_argument("--reload_path", type=str, default="./snapshots/omni_seg_cls_MRICombo_lb_4experts_0.05_400_0.5cls_weight/omni_cls_e395.pth")
-    parser.add_argument("--reload_path", type=str, default='../snapshots/omni_seg_cls_2_encoder_5_26_CROSS/omni_cls_e395.pth')
+    parser.add_argument("--reload_path", type=str, default='../snapshots/Best_MRICombo.pth', help="Path to trained model checkpoint")
     parser.add_argument('--trans_encoding', default='word_embedding', 
                         help='the type of encoding: rand_embedding or word_embedding')
     parser.add_argument('--word_embedding', default='../pretrained_weights/sequence_cancer_encoding.pth', 
@@ -531,22 +525,35 @@ def main():
         os.makedirs(args.excel_dir, exist_ok=True)  
     
 
-
     if args.reload_from_checkpoint:
         print('loading from checkpoint: {}'.format(args.reload_path))
-        state_dict=torch.load(args.reload_path, map_location=device,weights_only=True)
-        # create new OrderedDict that does not contain `module.`
+        state_dict = torch.load(args.reload_path, map_location=device,weights_only=True)
+
+        # 如果权重名称以 "module." 开头，移除前缀
         from collections import OrderedDict
         new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-          
-            # name = 'module.' + k   # add `module.`
-            name = k[7:]  # - `module.`
-            new_state_dict[name] = v
-        # load params
+        for k, v in state_dict['model'].items():
+        # for k, v in state_dict.items():
+            if k.startswith("module."):
+                new_state_dict[k[7:]] = v  # 移除 "module." 前缀
+            else:
+                new_state_dict[k] = v
         model.load_state_dict(new_state_dict)
+    # if args.reload_from_checkpoint:
+    #     print('loading from checkpoint: {}'.format(args.reload_path))
+    #     state_dict=torch.load(args.reload_path, map_location=device,weights_only=True)
+    #     # create new OrderedDict that does not contain `module.`
+    #     from collections import OrderedDict
+    #     new_state_dict = OrderedDict()
+    #     for k, v in state_dict.items():
+          
+    #         # name = 'module.' + k   # add `module.`
+    #         name = k[7:]  # - `module.`
+    #         new_state_dict[name] = v
+    #     # load params
+    #     model.load_state_dict(new_state_dict)
     
-    mask_code = [1,1,1,1,0,0,0,0]
+    mask_code = [1,1,1,1,1,1,1,1]
     val_cls_dataset = UniclsDataset(args.data_dir, args.val_cls_list, split="val",code=mask_code,
                                 crop_size=(args.roi_x,args.roi_y,args.roi_z))
 
@@ -573,7 +580,7 @@ def main():
     print('validate ...')
     validate(args, input_size, model, val_cls_loader,val_seg_loader,device,args.seg_classes)
 
-    end = timeit.default_timer()
+    # end = timeit.default_timer()
     # print(end - start, 'seconds')
 
 

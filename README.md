@@ -74,24 +74,118 @@ pip install -r requirements.txt
 python -c "import torch; import monai; print('Installation successful!')"
 ```
 
+## 📊 Data Preparation
+
+Before running experiments, you need to prepare your datasets following our format.
+
+### Quick Overview
+
+1. **Organize your data** following the expected directory structure
+2. **Preprocess** all images (resample, normalize, crop)
+3. **Create data lists** for training/validation/testing
+
+### Directory Structure
+
+```
+MRICombo/
+├── dataset/
+│   ├── MR_Dataset/              # Raw MRI data
+│   │   ├── 0BraTS/              # Brain tumor dataset
+│   │   │   └── BraTS_001/
+│   │   │       ├── BraTS_001_t1.nii.gz
+│   │   │       ├── BraTS_001_t1ce.nii.gz
+│   │   │       ├── BraTS_001_t2.nii.gz
+│   │   │       ├── BraTS_001_flair.nii.gz
+│   │   │       └── BraTS_001_seg.nii.gz
+│   │   ├── 1HNTS/               # Head-neck tumor
+│   │   ├── 2NPC/                # Nasopharyngeal carcinoma
+│   │   └── ...                  # Other datasets
+│   │
+│   ├── segmentation/
+│   │   ├── seg_train.txt        # Training list
+│   │   ├── seg_val.txt          # Validation list
+│   │   └── seg_test.txt         # Testing list
+│   │
+│   └── classification/
+│       ├── cls_train.txt        # Training list
+│       └── cls_test.txt         # Testing list
+│
+└── snapshots/                   # Model checkpoints
+```
+
+### Data List Format
+
+**Segmentation lists** (`seg_train.txt`):
+```
+0BraTS/BraTS_001
+0BraTS/BraTS_002
+1HNTS/HNTS_001
+2NPC/NPC_001
+...
+```
+
+**Classification lists** (`cls_train.txt`):
+```
+0BraTS/BraTS_001 1
+0BraTS/BraTS_002 0
+2NPC/NPC_001 1
+...
+```
+
+### Preprocessing Requirements
+
+All MRI data must be preprocessed with:
+
+1. **Resampling**: 1mm³ isotropic spacing
+2. **Normalization**: Z-score normalization per sequence
+3. **Size**: 128×128×128 voxels (center crop/pad)
+4. **Format**: NIfTI (.nii.gz)
+
+### Detailed Instructions
+
+📖 **See [DATA_PREPARATION.md](DATA_PREPARATION.md)** for:
+- Complete directory structure for each dataset
+- Naming conventions and file formats
+- Step-by-step preprocessing pipeline with code examples
+- Data validation checklist
+- Dataset-specific label encodings
+
+## 🎯 Pre-trained Weights
+
+We provide pre-trained model weights for reproducibility.
+
+📥 **See [MODEL_WEIGHTS.md](MODEL_WEIGHTS.md)** for:
+- Download links for pretrained checkpoints
+- Instructions for loading and using weights
+- Fine-tuning guide
+- Expected performance metrics
+
+**Note**: Model weights will be publicly released upon paper acceptance. For early access, contact: p2316955@mpu.edu.mo
+
 ## 🚀 Quick Start
 
 ### Training
 
 ```bash
+cd code  # Navigate to code directory
+
 # Single-GPU training
 python MOENet_train.py \
-    --data_dir /path/to/data \
+    --data_dir ../dataset/ \
+    --train_seg_list ../dataset/segmentation/seg_train.txt \
+    --val_seg_list ../dataset/segmentation/seg_val.txt \
+    --train_cls_list ../dataset/classification/cls_train.txt \
+    --val_cls_list ../dataset/classification/cls_test.txt \
+    --backbone_name MRICombo \
     --batch_size 4 \
     --num_epochs 400 \
-    --learning_rate 3e-5 \
-    --save_dir ./checkpoints
+    --learning_rate 3e-5
 
 # Multi-GPU training with DDP
-python -m torch.distributed.launch \
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch \
     --nproc_per_node=4 \
     MOENet_train.py \
-    --data_dir /path/to/data \
+    --data_dir ../dataset/ \
     --batch_size 16 \
     --distributed
 ```
@@ -99,11 +193,48 @@ python -m torch.distributed.launch \
 ### Testing/Evaluation
 
 ```bash
+cd code  # Navigate to code directory
+
 python MOENet_test.py \
-    --checkpoint ./checkpoints/best_model.pth \
-    --test_dir /path/to/test_data \
-    --output_dir ./results \
-    --visualize
+    --reload_path ../snapshots/Best_MRICombo.pth \
+    --data_dir ../dataset/ \
+    --val_seg_list ../dataset/segmentation/seg_test.txt \
+    --val_cls_list ../dataset/classification/cls_test.txt \
+    --backbone_name MRICombo \
+    --excel_dir csv/MRICombo_output
+```
+
+### Inference on New Data
+
+```python
+import torch
+from network.OmniNet import omni_seg_cls
+
+# Load model
+model = omni_seg_cls(
+    img_size=(128, 128, 128),
+    seg_in_channels=8,
+    out_channels=27,
+    cls_in_channels=8,
+    cls_classes=5,
+    backbone='MRICombo'
+)
+
+checkpoint = torch.load('../snapshots/Best_MRICombo.pth')
+model.load_state_dict(checkpoint['model_state_dict'])
+model.eval()
+
+# Prepare your input (8 sequences)
+# x1-x8: T1, T1ce, T2, FLAIR, DCE1, DCE2, ADC, DWI
+inputs = [x1, x2, x3, x4, x5, x6, x7, x8]
+sequence_code = torch.ones(8)  # All sequences available
+
+# Inference
+with torch.no_grad():
+    seg_output, cls_output = model(inputs, sequence_code, task='seg')
+
+# seg_output: (B, 27, 128, 128, 128)
+# cls_output: (B, num_classes)
 ```
 
 ## 🏗️ Model Architecture
@@ -189,11 +320,59 @@ This work was supported by:
 
 ## 📝 Changelog
 
-### v1.0.0 (2024)
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+
+### v1.0.0 (2026-01-13)
 - Initial release
-- Support for 6 anatomical regions
+- Support for 10 anatomical regions
 - Multi-task learning with MoE architecture
 - Apache 2.0 License
+- Comprehensive documentation
+
+## 📚 Documentation Index
+
+- **[README.md](README.md)** (this file) - Project overview and quick start
+- **[DATA_PREPARATION.md](DATA_PREPARATION.md)** - Detailed data preparation guide
+  - Expected directory structure
+  - Dataset-specific formats and naming conventions
+  - Preprocessing pipeline with code examples
+  - Data validation checklist
+- **[MODEL_WEIGHTS.md](MODEL_WEIGHTS.md)** - Pre-trained model weights
+  - Download links and usage instructions
+  - Fine-tuning guide
+  - Expected performance metrics
+- **[STRUCTURE.md](STRUCTURE.md)** - Project structure overview
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history
+- **[LICENSE](LICENSE)** - Apache 2.0 License
+
+## 🔬 Reproducibility
+
+We are committed to reproducibility and provide:
+
+✅ **Complete source code** - All model architectures and training scripts  
+✅ **Detailed data preparation** - Step-by-step preprocessing instructions  
+✅ **Pre-trained weights** - Model checkpoints (released upon acceptance)  
+✅ **Preprocessing scripts** - Located in `code/dataset_conversion/`  
+✅ **Configuration files** - All hyperparameters documented  
+✅ **Expected results** - Performance metrics for verification  
+
+### Reproducing Paper Results
+
+1. **Setup environment**: Follow [Installation](#%EF%B8%8F-installation)
+2. **Prepare data**: Follow [DATA_PREPARATION.md](DATA_PREPARATION.md)
+3. **Download weights**: Follow [MODEL_WEIGHTS.md](MODEL_WEIGHTS.md)
+4. **Run evaluation**: Use testing script with provided checkpoints
+
+Expected results should match Table 2 in the paper within ±0.01 Dice/AUC due to randomness.
+
+### For Questions
+
+- **Data preparation**: See [DATA_PREPARATION.md](DATA_PREPARATION.md) or open an issue
+- **Model usage**: See [MODEL_WEIGHTS.md](MODEL_WEIGHTS.md)
+- **General questions**: Open a GitHub Discussion
+- **Bug reports**: Open a GitHub Issue
+- **Direct contact**: p2316955@mpu.edu.mo
 
 ---
 

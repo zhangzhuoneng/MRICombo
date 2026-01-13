@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# PyTorch
+*.pth
+*.pt
+*.ckpt
+snapshots/
+checkpoints/
+weights/
+
+# Data
+dataset/MR_Dataset/
+dataset/classification/
+dataset/segmentation/
+*.npy
+*.npz
+*.pkl
+
+# Logs
+log/
+logs/
+*.log
+runs/
+tensorboard/
+
+# Medical Imaging
+*.nii
+*.nii.gz
+*.mha
+*.mhd
+*.dcm
+
+# Results
+results/
+outputs/
+csv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+

@@ -28,10 +28,11 @@ from typing import Sequence
 random.seed(42)
 np.random.seed(42)
 torch.manual_seed(42)
-from dataset.aug_cls import *
+from dataset.augmentation_cls import *
 
 
 position_cls_dict= {
+    # "10AMBL":0,
     "11FedBca":0,
     "12NPC":1,
     "13LLD":2,
@@ -41,21 +42,17 @@ position_cls_dict= {
 }
 
 def list_add_prefix(txt_path, prefix_1):
-    '''
-    prefix_1: 
-    prefix_2: 
-    '''
+   
+    
     with open(txt_path, 'r') as f:
         lines = f.readlines()
       
     if prefix_1 is not None:
         filtered_lines = [line for line in lines if line.split('/')[1].startswith(prefix_1)]
-        # print(filtered_lines)
-        
+       
         unique_names = set()
         for line in filtered_lines:
 
-           
             filename = line.split('/')[-1]  
             unique_names.add(filename)
         
@@ -89,6 +86,7 @@ class UniclsDataset(data.Dataset):
         self.files = []
         print("Start preprocessing....")
         self.cls_use_dataset = [
+        # "10AMBL",
         "11FedBca",
         "12NPC",
         "13LLD",
@@ -142,7 +140,6 @@ class UniclsDataset(data.Dataset):
         print('{} cls {} images are loaded!'.format(len(self.files),self.split))
 
        
-       
     def __len__(self):
         return len(self.files)
 
@@ -171,9 +168,19 @@ class UniclsDataset(data.Dataset):
         patient = self.files[index]
 
         patient_id = patient["id"]
-        part_id = int(patient_id[11:13])  # 获取部位ID
+        part_id = int(patient_id[11:13])  # Get/Obtain部位ID
         name =  patient_id.split('/')[-1]
+        # print(patient_id)
+        images = {key:torch.tensor(load_nii(f"{self.root}/{patient_id}/{patient[key]}")) for key in patient if key not in ["id", "label"]}
+        # print(images[0].shape)
+        # images = torch.stack([images[key].to(torch.float32) for key in images])
         
+        # external test lld
+        # images = {key: torch.tensor(
+        #     resize(load_nii(f"{self.root}/{patient_id}/{patient[key]}"), (128, 128, 128),
+        #            order=1, mode='constant', cval=0, clip=True, preserve_range=True)
+        # ) for key in patient if key not in ["id", "label"]}
+        #
         images = torch.stack([images[key].to(torch.float32) for key in images])
         label = patient["label"]
         
@@ -201,22 +208,22 @@ class UniclsDataset(data.Dataset):
                   
             images = images.squeeze(0)
             if np.random.rand(1) <= 0.5:
-               
+                #  1. 生成统一的旋转parameter
                 images = rotate_3d_image_and_label(images, angle_spectrum=90)
            
             if np.random.rand(1) <= 0.5:  # mirror_flip W
                 images = np.array(images)
-                images = images[:, :, :, ::-1]  # h flip
-                images = torch.from_numpy(images.copy())  
+                images = images[:, :, :, ::-1]  # horizontal flip
+                images = torch.from_numpy(images.copy())  # add .copy()
             if np.random.rand(1) <= 0.5:
                 images = np.array(images)
-                images = images[:, :, ::-1, :]  # v flip
-                images = torch.from_numpy(images.copy())  
+                images = images[:, :, ::-1, :]  # vertical flip
+                images = torch.from_numpy(images.copy())  # add .copy()
             if np.random.rand(1) <= 0.5:
                 images = np.array(images)
-                images = images[:, ::-1, :, :]  
-                images = torch.from_numpy(images.copy())  
-           
+                images = images[:, ::-1, :, :]  # depth flip
+                images = torch.from_numpy(images.copy())  # add .copy()
+            # if need to sample to non-96 96 96, need to modify here
             images = np.array(images)
             images = resize(images, (images.shape[0], self.crop_h, self.crop_w, self.crop_d), order=1, mode='constant', cval=0,
                         clip=True, preserve_range=True)
@@ -226,7 +233,7 @@ class UniclsDataset(data.Dataset):
 
         elif self.split == 'val' or self.split == 'test':
             images = np.array(images)
-          
+            # if need to sample to non-96 96 96, need to modify here
             images = resize(images, (images.shape[0], self.crop_h, self.crop_w, self.crop_d), order=1, mode='constant', cval=0,
                         clip=True, preserve_range=True)
            
@@ -302,12 +309,17 @@ class UniclsDataset(data.Dataset):
                 sequence_code = torch.tensor(self.code, dtype=torch.int32)
             x7,x8 = x7 * sequence_code[6], x8* sequence_code[7]
         
-     
+        # image = resize(image, (1, self.crop_d, self.crop_h, self.crop_w), order=1, mode='constant', cval=0,
+        #                 clip=True, preserve_range=True)
         x1,x2,x3,x4,x5,x6,x7,x8= x1[np.newaxis, :],x2[np.newaxis, :],x3[np.newaxis, :],x4[np.newaxis, :],x5[np.newaxis, :],x6[np.newaxis, :],x7[np.newaxis, :],x8[np.newaxis, :]
+        # images = images.astype(np.float32)
+        # return image.copy(), label, name,sequence_id,part_id
+        # add part code and task code
+        # map part_id to part code (0-5), convert to one-hot form
+        region_ids = torch.zeros(10, dtype=torch.float32)  # 6 parts, initialize as all 0
         
-        region_ids = torch.zeros(10, dtype=torch.float32)  #
-        
-      
+        # if part_id == 10:  # AMBL
+        #     region_ids[0] = 1.0
         if part_id == 11:  # FedBca
             region_ids[7] = 1.0
         elif part_id == 12:  # NPC
@@ -321,12 +333,13 @@ class UniclsDataset(data.Dataset):
         else:
             raise ValueError(f"Unknown part_id: {part_id}")
         
-        # task encode：cls is 1
-        task_ids = torch.tensor(1, dtype=torch.long)  #
+        # task code: 1 for classification task
+        task_ids = torch.tensor(1, dtype=torch.long)  # 1 for classification task
         
         return x1.to(torch.float32),x2.to(torch.float32),x3.to(torch.float32),x4.to(torch.float32),\
         x5.to(torch.float32),x6.to(torch.float32),x7.to(torch.float32),x8.to(torch.float32),name,label,sequence_code,region_ids,task_ids
-        #
+     
+
 
 def get_train_transform():
     tr_transforms = []
@@ -361,7 +374,7 @@ def tr_cls_collate(batch):
     label = np.stack(label, 0)
     name = np.stack(name, 0)
     sequence_code = np.stack(sequence_code, 0)
-    region_ids = np.stack(region_ids, 0) 
+    region_ids = np.stack(region_ids, 0)  # now is [B, 6] one-hot vector
     task_ids = np.stack(task_ids, 0)
     data_dict = {
         'x1': x1,'x2': x2, 'x3': x3, 'x4': x4, 'x5': x5, 'x6': x6,'x7': x7, 'x8': x8, 

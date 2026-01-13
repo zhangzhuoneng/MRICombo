@@ -39,17 +39,17 @@ def get_arguments():
                         help='distributed training or not')
     #parser.add_argument("--data_dir", type=str, default="/root/dataspace/Medical_image_database/MRI/segmentation/")#NAS root
     #parser.add_argument("--data_dir", type=str, default="/root/localspace/zzn/UniMRINet/dataset/")#local root
-    parser.add_argument("--data_dir", type=str, default="/data/zzn/UniMRINet/dataset/")#local root
-    parser.add_argument("--log_dir", type=str, default='./log/log_omni_MRICombo')
-    parser.add_argument("--tensorboard_log_name", type=str, default='/omni_seg_cls_MRICombo_lb_4experts_0.05_400_0.5cls_weight')
-    parser.add_argument("--snapshot_dir", type=str, default='./snapshots/omni_seg_cls_MRICombo_lb_4experts_0.05_400_0.5cls_weight')
+    parser.add_argument("--data_dir", type=str, default="../dataset/", help="Path to dataset root directory")
+    parser.add_argument("--log_dir", type=str, default='../log/log_omni_MRICombo')
+    parser.add_argument("--tensorboard_log_name", type=str, default='/omni_seg_cls_MRICombo')
+    parser.add_argument("--snapshot_dir", type=str, default='../snapshots/omni_seg_cls_MRICombo')
     parser.add_argument("--cls_weight", type=float, default=0.5)
     parser.add_argument('--backbone_name', default='MRICombo', help='backbone unet,swinunetr') 
-    parser.add_argument("--train_seg_list", type=str, default= "/data/zzn/UniMRINet/dataset/segmentation/seg_train_1.txt" )
-    parser.add_argument("--val_seg_list", type=str, default= "/data/zzn/UniMRINet/dataset/segmentation/seg_val_1.txt" )
-    parser.add_argument("--train_cls_list", type=str, default="/data/zzn/UniMRINet/dataset/classification/cls_train_new.txt")
-    parser.add_argument("--val_cls_list", type=str, default="/data/zzn/UniMRINet/dataset/classification/cls_test_new.txt" )
-    parser.add_argument("--reload_path", type=str, default='/data/zzn/UniMRINet/code/MRICombo/snapshots/omni_seg_cls_MRICombo_lb_4experts_0.05_400/checkpoint_omni_unet_e44.pth')
+    parser.add_argument("--train_seg_list", type=str, default="../dataset/segmentation/seg_train.txt", help="Path to training segmentation list")
+    parser.add_argument("--val_seg_list", type=str, default="../dataset/segmentation/seg_val.txt", help="Path to validation segmentation list")
+    parser.add_argument("--train_cls_list", type=str, default="../dataset/classification/cls_train.txt", help="Path to training classification list")
+    parser.add_argument("--val_cls_list", type=str, default="../dataset/classification/cls_test.txt", help="Path to validation classification list")
+    parser.add_argument("--reload_path", type=str, default='../snapshots/Best_MRICombo.pth', help="Path to pretrained model checkpoint")
     parser.add_argument('--trans_encoding', default='word_embedding', 
                         help='the type of encoding: rand_embedding or word_embedding')
     parser.add_argument('--word_embedding', default='../pretrained_weights/sequence_cancer_encoding.pth', 
