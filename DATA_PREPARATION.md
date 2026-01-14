@@ -187,7 +187,7 @@ dataset/MR_Dataset/{DATASET_ID}{DATASET_NAME}/
 
 The following datasets are primarily used for classification tasks (tumor grading, staging, malignancy detection):
 
-#### 11. FedBca (Federated Breast Cancer)
+#### 11. FedBca (Federated Bladder Cancer Detection)
 ```
 11FedBca/
 └── center1_001/
@@ -196,9 +196,9 @@ The following datasets are primarily used for classification tasks (tumor gradin
 ```
 
 **Sequences**: T2  
-**Classification Task**: Benign vs Malignant breast tumors  
+**Classification Task**: NMIBC vs MIBC  
 **Segmentation Classes**: 1 (Tumor)  
-**Classification Labels**: 0=benign, 1=malignant
+**Classification Labels**: 0=NMIBC, 1=MIBC 
 
 #### 12. NPC (Nasopharyngeal Carcinoma - Classification)
 ```
@@ -315,12 +315,12 @@ Example `cls_train.txt`:
 
 ## 🔧 Data Preprocessing
 
-### Step 1: Resampling to 1mm³ Isotropic
+### Step 1: Resampling to 1.2mm*1.5mm*1.5mm Isotropic
 
 ```python
 import SimpleITK as sitk
 
-def resample_to_isotropic(image_path, output_path, target_spacing=(1.0, 1.0, 1.0)):
+def resample_to_isotropic(image_path, output_path, target_spacing=(1.2, 1.5, 1.5)):
     """Resample image to isotropic 1mm³ spacing"""
     image = sitk.ReadImage(image_path)
     original_spacing = image.GetSpacing()
@@ -374,7 +374,7 @@ def percentile_clip(image, lower=0.5, upper=99.5):
 ### Step 3: Center Cropping
 
 ```python
-def center_crop_or_pad(image, target_shape=(128, 128, 128)):
+def center_crop_or_pad(image, target_shape=(96, 96, 96)):
     """Crop or pad image to target shape"""
     current_shape = image.shape
     
@@ -439,7 +439,7 @@ def preprocess_case(input_dir, output_dir, patient_id, sequences):
         image = sitk.ReadImage(input_path)
         
         # Step 1: Resample to 1mm³
-        resampled = resample_to_isotropic(image, target_spacing=(1.0, 1.0, 1.0))
+        resampled = resample_to_isotropic(image, target_spacing=(1.2, 1.5, 1.5))
         
         # Convert to numpy
         array = sitk.GetArrayFromImage(resampled)
@@ -450,7 +450,7 @@ def preprocess_case(input_dir, output_dir, patient_id, sequences):
             array = z_score_normalize(array)
         
         # Step 3: Crop/pad to target size
-        array = center_crop_or_pad(array, target_shape=(128, 128, 128))
+        array = center_crop_or_pad(array, target_shape=(96, 96, 96))
         
         # Convert back to SimpleITK and save
         output_image = sitk.GetImageFromArray(array)
@@ -537,7 +537,7 @@ Before training, verify:
 
 - [ ] All sequences are resampled to 1mm³ isotropic
 - [ ] Images are normalized (z-score)
-- [ ] All images are same size (e.g., 128×128×128)
+- [ ] All images are same size (e.g., 96×96×96)
 - [ ] Labels are in correct format (integer, not one-hot)
 - [ ] Label values match expected classes
 - [ ] File naming follows convention: `{patient_id}_{sequence}.nii.gz`
@@ -549,10 +549,10 @@ Before training, verify:
 
 | Dataset | Train | Val | Test | Image Size | Sequences | Classes |
 |---------|-------|-----|------|------------|-----------|---------|
-| BraTS | 200 | 50 | 100 | 128³ | 4 | 3 |
-| HNTS | 150 | 30 | 50 | 128³ | 1 | 1 |
-| NPC | 300 | 60 | 100 | 128³ | 3 | 2 |
-| ISPY | 100 | 20 | 40 | 128³ | 2 | 1 |
+| BraTS | 200 | 50 | 100 | 96³ | 4 | 3 |
+| HNTS | 150 | 30 | 50 | 96³ | 1 | 1 |
+| NPC | 300 | 60 | 100 | 96³ | 3 | 2 |
+| ISPY | 100 | 20 | 40 | 96³ | 2 | 1 |
 
 *(Note: Actual numbers depend on your dataset)*
 

@@ -536,7 +536,7 @@ def main():
                                 # print(i,roc_auc_score(labels_bin[:, i], probs[:, i]))
                                 auc_scores.append(roc_auc_score(labels_bin[:, i], probs[:, i]))
                             auc = np.mean(auc_scores)
-                        else:  # 二分类数据集
+                        else:  # binary classification dataset
                             auc = roc_auc_score(labels, probs[:, 1])  
 
                         logging.info(f'{dataset_name} AUC: {auc:.4f}')

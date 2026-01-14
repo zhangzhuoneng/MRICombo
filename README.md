@@ -138,7 +138,7 @@ All MRI data must be preprocessed with:
 
 1. **Resampling**: 1mm³ isotropic spacing
 2. **Normalization**: Z-score normalization per sequence
-3. **Size**: 128×128×128 voxels (center crop/pad)
+3. **Size**: 96×96×96 voxels (center crop/pad)
 4. **Format**: NIfTI (.nii.gz)
 
 ### Detailed Instructions
@@ -212,7 +212,7 @@ from network.OmniNet import omni_seg_cls
 
 # Load model
 model = omni_seg_cls(
-    img_size=(128, 128, 128),
+    img_size=(96, 96, 96),
     seg_in_channels=8,
     out_channels=27,
     cls_in_channels=8,
@@ -233,7 +233,7 @@ sequence_code = torch.ones(8)  # All sequences available
 with torch.no_grad():
     seg_output, cls_output = model(inputs, sequence_code, task='seg')
 
-# seg_output: (B, 27, 128, 128, 128)
+# seg_output: (B, 27, 96, 96, 96)
 # cls_output: (B, num_classes)
 ```
 
@@ -290,7 +290,7 @@ The MRICombo framework consists of four main components:
 
 ### Data Preprocessing
 
-1. **Resampling**: All images resampled to 1mm³ isotropic
+1. **Resampling**: All images resampled to 1.2mm*1.5mm*1.5mm isotropic
 2. **Intensity Normalization**: Z-score normalization per sequence
 3. **Cropping**: Region-of-interest extraction
 4. **Augmentation**: Spatial transforms, intensity shifts, noise injection
