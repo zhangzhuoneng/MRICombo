@@ -84,3 +84,7 @@ csv/
 # Testing
 .pytest_cache/
 
+
+# Keep model checkpoints tracked
+!snapshots/
+!snapshots/**
