@@ -65,6 +65,14 @@ tensorboard/
 *.mhd
 *.dcm
 
+# Keep dataset files tracked in this repository
+!dataset/MR_Dataset/
+!dataset/MR_Dataset/**
+!dataset/classification/
+!dataset/classification/**
+!dataset/segmentation/
+!dataset/segmentation/**
+
 # Results
 results/
 outputs/

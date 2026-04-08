@@ -39,7 +39,7 @@ def get_arguments():
     parser.add_argument("--val_seg_list", type=str, default="../dataset/segmentation/seg_test.txt", help="Path to test segmentation list")
     parser.add_argument("--val_cls_list", type=str, default='../dataset/classification/cls_test.txt', help="Path to test classification list")
     parser.add_argument('--backbone_name', default='MRICombo', help='backbone unet,swinunetr,DeepFusionUniMRINet')
-    parser.add_argument("--reload_path", type=str, default='../snapshots/omni_cls_e380.pth', help="Path to trained model checkpoint")
+    parser.add_argument("--reload_path", type=str, default='../snapshots/Best_MRICombo.pth', help="Path to trained model checkpoint")
     parser.add_argument("--reload_from_checkpoint", type=str2bool, default=True)
     parser.add_argument("--save_path", type=str, default='../outputs/MRICombo_mae')
     parser.add_argument("--input_size", type=str, default='96,96,96')
