@@ -108,6 +108,7 @@ MRICombo/
 │   │
 │   └── classification/
 │       ├── cls_train.txt        # Training list
+│       ├── cls_val.txt          # Validation list
 │       └── cls_test.txt         # Testing list
 │
 └── snapshots/                   # Model checkpoints
