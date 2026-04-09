@@ -20,13 +20,14 @@
 - **Multiple MRI sequences**: T1, T2, FLAIR, CT1, DWI, and more (up to 9 sequences)
 - **Multiple tasks**: Organ/tumor segmentation, tumor grading, staging, malignancy detection
 
-The framework builds patient-specific disease trajectories and trains a transformer-based model with region-aware and task-aware gating mechanisms for optimal expert selection.
+The framework builds patient-specific disease trajectories and trains a transformer-based model with region-aware and task-aware gating mechanisms for optimal expert selection. An optional **masked autoencoder (MAE) reconstruction branch** encourages robust fused representations when sequences are partially observed or noisy, complementing supervised segmentation and classification losses during early training.
 
 ## 🌟 Key Features
 
 - **🔀 Multi-Task Learning**: Simultaneous segmentation and classification with shared representations
 - **🎯 Mixture of Experts (MoE)**: Dynamic expert routing based on anatomical region and task type
 - **🧠 Multi-Sequence Support**: Handles heterogeneous MRI sequences (up to 9 modalities)
+- **🧩 Reconstruction (MAE) Module**: Input-level masking with a lightweight decoder to reconstruct fused early features from the encoder bottleneck (self-supervised auxiliary objective)
 - **🌍 Cross-Domain Generalization**: Trained on 6+ anatomical regions with varying sequence combinations
 - **⚡ Efficient Training**: Task-specific expert selection reduces computational overhead
 - **🔬 Clinical Applications**: Supports multiple cancer types and clinical decision-making tasks
@@ -153,15 +154,12 @@ All MRI data must be preprocessed with:
 
 ## 🎯 Pre-trained Weights
 
-We provide pre-trained model weights for reproducibility.
+We ship a pretrained checkpoint in the repository for direct evaluation and fine-tuning.
 
-📥 **See [MODEL_WEIGHTS.md](MODEL_WEIGHTS.md)** for:
-- Download links for pretrained checkpoints
-- Instructions for loading and using weights
-- Fine-tuning guide
-- Expected performance metrics
+- **Default path**: `snapshots/Best_MRICombo.pth` (tracked via Git LFS; run `git lfs pull` after clone if needed)
+- **Details**: [MODEL_WEIGHTS.md](MODEL_WEIGHTS.md) — loading, evaluation, and fine-tuning notes
 
-**Note**: Model weights will be publicly released upon paper acceptance. For early access, contact: p2316955@mpu.edu.mo
+For questions: open an issue or contact p2316955@mpu.edu.mo
 
 ## 🚀 Quick Start
 
@@ -190,6 +188,23 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch \
     --batch_size 16 \
     --distributed
 ```
+
+**Reconstruction (MAE) branch** (optional self-supervised auxiliary loss in `MOENet_train.py`):
+
+| Argument | Default | Meaning |
+|----------|---------|---------|
+| `--use_mae` | `True` | Enable MAE reconstruction loss during training |
+| `--mae_initial_weight` | `1.0` | Starting weight for the MAE term |
+| `--mae_warmup_epochs` | `100` | MAE weight linearly decays to 0 over this many epochs |
+| `--mae_mask_ratio` | `0.25` | Fraction of low-res patches masked per sequence (higher = more masking) |
+
+Example (supervised-only training — set MAE loss weight to zero):
+
+```bash
+python MOENet_train.py ... --mae_initial_weight 0
+```
+
+Note: `--use_mae` is parsed as a boolean flag in the training script; using `--mae_initial_weight 0` reliably turns off the reconstruction term.
 
 ### Testing/Evaluation
 
@@ -240,7 +255,7 @@ with torch.no_grad():
 
 ## 🏗️ Model Architecture
 
-The MRICombo framework consists of four main components:
+The MRICombo framework consists of five main components (four task heads plus an optional reconstruction path):
 
 ### 1. **Sequence Extraction Module**
 - Individual sequence extraction modules for each MRI sequence (T1, T2, FLAIR, etc.)
@@ -263,6 +278,17 @@ The MRICombo framework consists of four main components:
 - **Task-Aware**: Switches behavior for seg vs. cls tasks
 - **Learnable**: Trained end-to-end with task losses
 
+### 5. **Reconstruction Module (MAE-style auxiliary branch)**
+
+This branch is **not** a separate standalone model: it plugs into the segmentation forward path when `return_mae_recon=True` (used inside `MOENet_train.py` when MAE is enabled).
+
+- **Masking**: Patch-wise random masking is applied **independently per input sequence** on a low-resolution grid (factor 16), then upsampled to the full volume so each channel can be partially observed.
+- **Encoder input**: The network runs on **masked** volumes; the **reconstruction target** is the fused early feature map computed from **unmasked** inputs (detached), so the objective encourages the bottleneck to recover information removed at the input.
+- **MAE decoder**: A shallow **transposed-convolution stack** (`mae_decoder` in `network/MRICombo.py`) maps bottleneck features back to the spatial resolution of the fused feature map (four upsampling stages + a final 3×3×3 conv).
+- **Loss**: **L1** between prediction and target, averaged over masked voxels (and channels), weighted by a **linear schedule** that starts at `--mae_initial_weight` and goes to zero after `--mae_warmup_epochs`.
+
+At inference or standard testing, this branch is typically **off**; only segmentation and classification heads are used.
+
 ## 📊 Supported Tasks
 
 ### Segmentation Tasks
@@ -270,11 +296,11 @@ The MRICombo framework consists of four main components:
 | Anatomical Region | Target Structures | Sequences | Classes |
 |-------------------|-------------------|-----------|---------|
 | **Brain** | Whole tumor, tumor core, enhancing tumor | T1, T1ce, T2, FLAIR | 3 |
-| **Nasopharynx** | Primary tumor (GTVnx), lymph nodes (GTVnd) | T1, T2 | 2 |
-| **Breast** | Tumor segmentation | T1, T2, DWI | 2 |
-| **Liver** | Tumor segmentation | T1, T2, DWI | 2 |
-| **Abdomen** | 11 organs (liver, spleen, kidney, etc.) | CT/T1 | 11 |
-| **Pelvis** | Bladder tumor, prostate | T1, T2, DWI | 2-3 |
+| **Head and Neck** | Primary tumor (GTVnx), lymph nodes (GTVnd), Nasopharynx cancer | T1, T1c, T2 | 3 |
+| **Breast** | Tumor segmentation | DCE | 2 |
+| **Liver** | Tumor segmentation | T1c | 1 |
+| **Abdomen** | 13 organs (liver, spleen, kidney, etc.) | T1 | 13 |
+| **Pelvis** | Bladder tumor, prostate | T1, T2, DWI, ADC | 2-3 |
 
 ### Classification Tasks
 
@@ -353,7 +379,8 @@ We are committed to reproducibility and provide:
 
 ✅ **Complete source code** - All model architectures and training scripts  
 ✅ **Detailed data preparation** - Step-by-step preprocessing instructions  
-✅ **Pre-trained weights** - Model checkpoints (released upon acceptance)  
+✅ **Pre-trained weights** - `snapshots/Best_MRICombo.pth` (Git LFS)  
+✅ **Reconstruction (MAE) training** - Documented above and implemented in `MOENet_train.py` / `network/MRICombo.py`  
 ✅ **Preprocessing scripts** - Located in `code/dataset_conversion/`  
 ✅ **Configuration files** - All hyperparameters documented  
 ✅ **Expected results** - Performance metrics for verification  
