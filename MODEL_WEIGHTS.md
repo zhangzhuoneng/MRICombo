@@ -1,277 +1,124 @@
-# 🎯 Pre-trained Model Weights
+# Pre-trained Model Weights
 
-This document describes how to obtain and use pre-trained MRICombo model weights.
+This document describes how to obtain and use the **MRICombo** checkpoint shipped with this repository.
 
-## 📥 Available Checkpoints
+## Available checkpoint
 
-We provide pre-trained model weights for the following configurations:
+| File | Location | Format | Notes |
+|------|----------|--------|--------|
+| **Best_MRICombo** | `snapshots/Best_MRICombo.pth` | PyTorch `state_dict` | Trained **MRICombo** backbone inside `omni_seg_cls`; weights are stored via **Git LFS** |
 
-| Model | Datasets | Tasks | Download | Size | Performance |
-|-------|----------|-------|----------|------|-------------|
-| **MRICombo-Full** | All 10 datasets | Seg + Cls | [Link](#) | ~500MB | See paper Table 2 |
-| **MRICombo-Seg** | Segmentation only | Seg only | [Link](#) | ~350MB | Dice: 0.85±0.03 |
-| **MRICombo-Brain** | BraTS only | Seg + Cls | [Link](#) | ~400MB | Dice: 0.89±0.02 |
+There is **one** public weight file in-repo. Additional variants (e.g. task-only) are not distributed here; open an issue if you need something specific.
 
-*Note: Model weights will be released upon paper acceptance. For early access, please contact: p2316955@mpu.edu.mo*
+### Clone with LFS
 
-## 📂 Checkpoint Structure
-
-Pre-trained checkpoints include:
-
-```python
-{
-    'model_state_dict': {...},           # Model parameters
-    'optimizer_state_dict': {...},       # Optimizer state (optional)
-    'epoch': 400,                        # Training epoch
-    'best_dice': 0.856,                  # Best validation Dice
-    'config': {                          # Model configuration
-        'num_encoder_experts': 4,
-        'num_decoder_experts': 4,
-        'base_ch': 32,
-        'top_k_encoder': 2,
-        'top_k_decoder': 2
-    },
-    'dataset_info': {                    # Dataset information
-        'train_datasets': [...],
-        'num_classes': 27,
-        'sequence_info': {...}
-    }
-}
-```
-
-## 🚀 Using Pre-trained Weights
-
-### 1. Download Checkpoint
+The `.pth` file is large; after `git clone`, fetch LFS objects:
 
 ```bash
-# Download from release page
-wget https://github.com/zhangzhuoneng/MRICombo/releases/download/v1.0/MRICombo_full.pth
-
-# Or use provided script
-python scripts/download_weights.py --model full --output ./snapshots/
+git lfs install
+git clone https://github.com/zhangzhuoneng/MRICombo.git
+cd MRICombo
+git lfs pull
 ```
 
-### 2. Load for Inference
-
-```python
-import torch
-from network.OmniNet import omni_seg_cls
-
-# Initialize model
-model = omni_seg_cls(
-    img_size=(128, 128, 128),
-    seg_in_channels=8,  # 8 MRI sequences
-    out_channels=27,    # 27 segmentation classes
-    cls_in_channels=8,
-    cls_classes=5,      # 5 classification tasks
-    backbone='MRICombo'
-)
-
-# Load checkpoint
-checkpoint = torch.load('./snapshots/MRICombo_full.pth', map_location='cpu')
-model.load_state_dict(checkpoint['model_state_dict'])
-model.eval()
-
-print(f"Loaded checkpoint from epoch {checkpoint['epoch']}")
-print(f"Best Dice: {checkpoint['best_dice']:.3f}")
-```
-
-### 3. Fine-tune on Your Data
-
-```python
-# Load pretrained weights
-checkpoint = torch.load('./snapshots/MRICombo_full.pth')
-model.load_state_dict(checkpoint['model_state_dict'])
-
-# Freeze encoder for fine-tuning (optional)
-for name, param in model.named_parameters():
-    if 'encoder' in name:
-        param.requires_grad = False
-
-# Train on your data
-optimizer = torch.optim.AdamW(
-    filter(lambda p: p.requires_grad, model.parameters()),
-    lr=1e-4
-)
-
-# ... training loop ...
-```
-
-### 4. Resume Training
-
-```python
-# Load full checkpoint including optimizer
-checkpoint = torch.load('./snapshots/checkpoint_epoch_200.pth')
-
-model.load_state_dict(checkpoint['model_state_dict'])
-optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-start_epoch = checkpoint['epoch'] + 1
-
-# Continue training
-for epoch in range(start_epoch, num_epochs):
-    # ... training loop ...
-    pass
-```
-
-## 🔧 Using in Testing Script
+Verify the file is a real tensor checkpoint (not a tiny LFS pointer):
 
 ```bash
-# Test with pretrained weights
-python code/MOENet_test.py \
-    --reload_path ./snapshots/MRICombo_full.pth \
-    --data_dir ./dataset/ \
-    --val_seg_list ./dataset/segmentation/seg_test.txt \
-    --val_cls_list ./dataset/classification/cls_test.txt \
+ls -lh snapshots/Best_MRICombo.pth
+# Expect hundreds of MB on disk after `git lfs pull`
+```
+
+## What is inside the file
+
+`MOENet_test.py` loads this path with `torch.load(..., weights_only=True)` and expects a **flat state dictionary** (key → tensor), as saved from **DistributedDataParallel** training: key names often start with `module.` and are **stripped** before `load_state_dict`:
+
+```text
+# Typical key pattern after DataParallel/DDP:
+module.backbone.... / module.classifier_.... 
+```
+
+If your checkpoint was saved without the `module.` prefix, remove or adjust the stripping logic in the test script accordingly.
+
+The checkpoint does **not** guarantee a nested bundle such as `{'model_state_dict': ..., 'epoch': ...}`—do not rely on that structure unless you produced it yourself during training (see `MOENet_train.py` for checkpoint formats when resuming).
+
+## Evaluation (recommended)
+
+From the repo root, using defaults that point at `snapshots/Best_MRICombo.pth`:
+
+```bash
+cd code
+python MOENet_test.py \
+    --reload_path ../snapshots/Best_MRICombo.pth \
+    --reload_from_checkpoint True \
+    --data_dir ../dataset/ \
+    --val_seg_list ../dataset/segmentation/seg_test.txt \
+    --val_cls_list ../dataset/classification/cls_test.txt \
     --backbone_name MRICombo
 ```
 
-## 📊 Expected Performance
+**Input / ROI geometry** must match training (defaults in the test script are **96×96×96**; see `--roi_x`, `--roi_y`, `--roi_z` and `--input_size`).
 
-When using our pre-trained weights on the test sets:
+## Manual load (Python)
 
-### Segmentation Performance (Dice Score)
-
-| Dataset | Our Checkpoint | Expected Range |
-|---------|----------------|----------------|
-| BraTS | 0.891 | 0.88-0.90 |
-| NPC | 0.823 | 0.81-0.83 |
-| ISPY | 0.856 | 0.84-0.87 |
-| Liver | 0.901 | 0.89-0.91 |
-| Prostate | 0.834 | 0.82-0.85 |
-
-### Classification Performance (AUC)
-
-| Task | Our Checkpoint | Expected Range |
-|------|----------------|----------------|
-| Brain Tumor Grading | 0.923 | 0.91-0.93 |
-| NPC T-staging | 0.887 | 0.87-0.90 |
-| Breast Malignancy | 0.912 | 0.90-0.92 |
-
-*Note: Performance may vary slightly (±0.01) due to randomness in inference augmentation.*
-
-## 🔄 Model Versioning
-
-We use semantic versioning for model weights:
-
-- **v1.0.0**: Initial release (400 epochs, all datasets)
-- **v1.1.0**: Improved with region-specific experts
-- **v1.2.0**: Enhanced with diverse expert structures
-
-## ⚠️ Important Notes
-
-### Compatibility
-
-- Checkpoint format is compatible with PyTorch >= 1.10
-- Ensure your model architecture matches the checkpoint
-- Use `strict=False` if loading partial weights:
-  ```python
-  model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-  ```
-
-### Memory Requirements
-
-- Full model: ~2GB GPU memory for inference
-- Batch size 1: ~4GB GPU memory
-- Batch size 4: ~12GB GPU memory
-
-### License
-
-Pre-trained weights are released under the same Apache 2.0 license as the code. You are free to:
-- Use for research and commercial purposes
-- Modify and redistribute
-- Include in derivative works
-
-Attribution is appreciated but not required.
-
-## 📝 Checkpoint Metadata
-
-Each checkpoint includes metadata for reproducibility:
+Align with `network/OmniNet.omni_seg_cls` and your task definitions (`seg_classes`, `cls_classes`, `in_channels`):
 
 ```python
-# Access metadata
-checkpoint = torch.load('MRICombo_full.pth')
+import torch
+from collections import OrderedDict
+from network.OmniNet import omni_seg_cls
 
-print("Training info:")
-print(f"  Datasets: {checkpoint['dataset_info']['train_datasets']}")
-print(f"  Total epochs: {checkpoint['epoch']}")
-print(f"  Best Dice: {checkpoint['best_dice']:.3f}")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-print("\nModel config:")
-for key, value in checkpoint['config'].items():
-    print(f"  {key}: {value}")
+model = omni_seg_cls(
+    img_size=(96, 96, 96),
+    seg_in_channels=8,
+    cls_in_channels=8,
+    out_channels=27,   # match your experiment / template
+    cls_classes=5,     # match your heads setup
+    backbone="MRICombo",
+).to(device)
+
+sd = torch.load("snapshots/Best_MRICombo.pth", map_location=device, weights_only=True)
+
+# Strip DDP 'module.' prefix if present (same as MOENet_test.py)
+new_sd = OrderedDict()
+for k, v in sd.items():
+    name = k[7:] if k.startswith("module.") else k
+    new_sd[name] = v
+
+missing, unexpected = model.load_state_dict(new_sd, strict=False)
+# Inspect missing/unexpected keys if you changed architecture hyperparameters
+model.eval()
 ```
 
-## 🔍 Verifying Downloaded Weights
+Use `strict=False` only when you intentionally changed heads or channels; otherwise prefer `strict=True` after confirming config matches training.
 
-Verify integrity of downloaded weights:
+## Fine-tuning
 
-```bash
-# Check MD5 hash
-md5sum MRICombo_full.pth
-# Expected: 5f9c2a3b...
+1. Match **preprocessing** and **label/template** definitions with the training pipeline (`README.md`, `DATA_PREPARATION.md`).
+2. Initialize `omni_seg_cls` with the same spatial size and channel settings as the checkpoint.
+3. Load weights as above, then run `MOENet_train.py` with `--reload_from_checkpoint` and `--reload_path` set to a training-style checkpoint if you resume from a **dict** checkpoint (`checkpoint['model']`). The public `Best_MRICombo.pth` is optimized for **evaluation** loading in `MOENet_test.py`; for resume-from-training, use checkpoints saved by your own `MOENet_train.py` run.
 
-# Or use provided script
-python scripts/verify_checkpoint.py --checkpoint MRICombo_full.pth
-```
+## Expected performance
 
-## 🆘 Troubleshooting
+Reported metrics are in the **paper** (e.g. main tables). Numbers in this README are not duplicated here to avoid drift from the manuscript; after `git lfs pull`, use the same splits and preprocessing to reproduce.
 
-### Issue: "RuntimeError: size mismatch"
+## Troubleshooting
 
-**Solution**: Architecture mismatch. Verify your model initialization matches the checkpoint:
-```python
-# Check checkpoint config
-checkpoint = torch.load('model.pth')
-print(checkpoint['config'])
+| Issue | What to check |
+|--------|----------------|
+| `size mismatch` / many missing keys | `out_channels`, `cls_classes`, `img_size`, or backbone name do not match the checkpoint. |
+| Tiny `.pth` file (~130 bytes) | Run `git lfs pull`; you only have the LFS pointer. |
+| `module.` / no `module.` prefix | Adjust key renaming when loading (see manual load snippet). |
 
-# Match your model initialization
-model = omni_seg_cls(**checkpoint['config'])
-```
+## License
 
-### Issue: "Missing keys" or "Unexpected keys"
+Pre-trained weights are released under the same **Apache 2.0** license as the code (see `LICENSE`).
 
-**Solution**: Use `strict=False` or update your model architecture:
-```python
-model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-```
+## Citation
 
-### Issue: Poor performance after loading
-
-**Checklist**:
-- [ ] Data preprocessing matches training (resampling, normalization)
-- [ ] Model is in eval mode: `model.eval()`
-- [ ] Input sequences are in correct order
-- [ ] Using same image size (128³)
-
-## 📧 Request for Weights
-
-If you need specific model weights not listed here, please:
-
-1. Open a GitHub issue with:
-   - Desired configuration
-   - Intended use case
-   - Expected timeline
-
-2. Or email: p2316955@mpu.edu.mo with subject "MRICombo Weights Request"
-
-We aim to respond within 5 business days.
-
-## 🎓 Citation
-
-If you use our pre-trained weights, please cite:
-
-```bibtex
-@article{zhang2024mricombo,
-  title={MRICombo: A Universal MRI Analysis Framework with Mixture of Experts},
-  author={Zhang, Zhuoneng and others},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2024}
-}
-```
+If you use this repository or the provided weights, please cite the **paper** associated with this work (bib entry in the manuscript or publisher page).
 
 ---
 
-**Last Updated**: 2026-01-13
-
-**Status**: Weights will be publicly released upon paper acceptance. Early access available upon request.
-
+**Last updated:** 2026-04-09
