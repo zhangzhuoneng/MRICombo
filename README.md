@@ -138,7 +138,7 @@ MRICombo/
 
 All MRI data must be preprocessed with:
 
-1. **Resampling**: 1mm³ isotropic spacing
+1. **Resampling**: 1.2×1.5×1.5mm³ isotropic spacing
 2. **Normalization**: Z-score normalization per sequence
 3. **Size**: 96×96×96 voxels (center crop/pad)
 4. **Format**: NIfTI (.nii.gz)
