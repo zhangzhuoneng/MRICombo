@@ -188,7 +188,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch \
     --batch_size 16 \
     --distributed
 ```
-
+training tips: "For the first 250 epochs, the model is primarily trained on the segmentation task. From epoch 250 to 400, it is jointly trained on both segmentation and classification tasks."
 **Reconstruction (MAE) branch** (optional self-supervised auxiliary loss in `MOENet_train.py`):
 
 | Argument | Default | Meaning |
